@@ -124,6 +124,7 @@ export type Waste = {
 export type Account = {
   businessName: string;
   managerName: string;
+  email?: string;
   phone?: string;
   avatarImage?: string;
   locale: 'fa-IR';

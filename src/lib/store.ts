@@ -29,6 +29,8 @@ const INITIAL_DATA: AppData = {
   account: {
     businessName: 'بوفه باشگاه',
     managerName: 'مدیر سیستم',
+    email: 'yashartavakolnia@gmail.com',
+    phone: '09367008618',
     locale: 'fa-IR',
     currency: 'TOMAN',
     calendar: 'jalali',

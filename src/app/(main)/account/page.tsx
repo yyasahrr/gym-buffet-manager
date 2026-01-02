@@ -82,9 +82,13 @@ export default function AccountPage() {
                  <span className="text-muted-foreground">نام مدیر</span>
                  <span className="font-medium">{account.managerName}</span>
              </div>
-              <div className="flex justify-between py-2">
+              <div className="flex justify-between py-2 border-b">
                  <span className="text-muted-foreground">شماره تماس</span>
                  <span className="font-medium">{account.phone || '-'}</span>
+             </div>
+              <div className="flex justify-between py-2">
+                 <span className="text-muted-foreground">ایمیل</span>
+                 <span className="font-medium">{account.email || '-'}</span>
              </div>
           </CardContent>
         </Card>
@@ -112,7 +116,11 @@ export default function AccountPage() {
               </div>
                <div className="space-y-2">
                 <Label htmlFor="phone">شماره تماس</Label>
-                <Input id="phone" value={formData.phone || ''} onChange={(e) => setFormData(p => ({...p, phone: e.target.value}))} />
+                <Input id="phone" type="tel" value={formData.phone || ''} onChange={(e) => setFormData(p => ({...p, phone: e.target.value}))} />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="email">ایمیل</Label>
+                <Input id="email" type="email" value={formData.email || ''} onChange={(e) => setFormData(p => ({...p, email: e.target.value}))} />
               </div>
             </div>
             <DialogFooter>
