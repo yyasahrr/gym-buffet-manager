@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { CircleUser, Search, Settings, LifeBuoy, LogOut } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 import {
   Breadcrumb,
@@ -13,15 +13,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
@@ -65,32 +56,6 @@ export function Header({ breadcrumbs, activeBreadcrumb, onSearch }: HeaderProps)
           />
         </div>
       )}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="secondary" size="icon" className="rounded-full">
-            <CircleUser className="h-5 w-5" />
-            <span className="sr-only">باز کردن منوی کاربر</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>حساب من</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href="/account"><CircleUser className="ml-2 h-4 w-4" />پروفایل</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/settings"><Settings className="ml-2 h-4 w-4" />تنظیمات</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/support"><LifeBuoy className="ml-2 h-4 w-4" />پشتیبانی</Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <LogOut className="ml-2 h-4 w-4" />
-            خروج
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </header>
   );
 }
