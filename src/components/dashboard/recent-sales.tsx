@@ -1,12 +1,9 @@
+
 'use client';
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@/components/ui/avatar';
 import { useMemo } from 'react';
 import { useAppData } from '@/lib/store';
+import { User } from 'lucide-react';
 
 
 export function RecentSales() {
@@ -27,10 +24,9 @@ export function RecentSales() {
     <div className="space-y-8">
         {recentOrders.map((order) => (
             <div key={order.id} className="flex items-center">
-                <Avatar className="h-9 w-9">
-                <AvatarImage src={`https://i.pravatar.cc/40?u=${order.customerName}`} alt="Avatar" />
-                <AvatarFallback>{order.customerName.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                </div>
                 <div className="mr-4 space-y-1">
                 <p className="text-sm font-medium leading-none">{order.customerName}</p>
                 <p className="text-sm text-muted-foreground">
