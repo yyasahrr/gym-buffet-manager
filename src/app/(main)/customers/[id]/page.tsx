@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { format as formatJalali } from 'date-fns-jalali';
 import { PlusCircle, MinusCircle } from 'lucide-react';
@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type DialogState = {
   isOpen: boolean;
@@ -30,6 +31,11 @@ export default function CustomerDetailPage() {
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, type: 'credit' });
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionDescription, setTransactionDescription] = useState('');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const customer = useMemo(() => customers.find(c => c.id === id), [id, customers]);
 
@@ -45,9 +51,35 @@ export default function CustomerDetailPage() {
     }, 0);
   }, [transactions]);
 
+  if (!isClient) {
+     return (
+       <div className="flex flex-col h-full">
+         <Header breadcrumbs={[{ href: '/customers', label: 'مشتریان' }]} activeBreadcrumb="بارگذاری..." />
+         <main className="flex-1 p-4 sm:px-6 sm:py-6">
+           <PageHeader title={<Skeleton className="h-9 w-48" />} />
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card className="md:col-span-1">
+                    <CardHeader><CardTitle>اطلاعات مشتری</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-8 w-1/2" />
+                    </CardContent>
+                </Card>
+                <Card className="md:col-span-2">
+                    <CardHeader>
+                        <CardTitle>گردش حساب</CardTitle>
+                        <CardDescription>لیست تمام تراکنش‌های مالی این مشتری.</CardDescription>
+                    </CardHeader>
+                    <CardContent><Skeleton className="h-40 w-full" /></CardContent>
+                </Card>
+            </div>
+         </main>
+       </div>
+     );
+  }
+
   if (!customer) {
-    // This will show a 404 page, but for client components, a redirect or clear message is better.
-    // In a real app router scenario, notFound() would be used in a server component.
     return (
         <div className="flex flex-col h-full">
             <Header breadcrumbs={[{href: '/customers', label: "مشتریان"}]} activeBreadcrumb="یافت نشد" />
