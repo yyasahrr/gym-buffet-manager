@@ -1,5 +1,6 @@
+
 import { useSyncExternalStore } from 'react';
-import type { AppData, Product, Ingredient, Food, Customer, CustomerTransaction, Order, Purchase, Expense, Waste } from './types';
+import type { AppData, Product, Ingredient, Food, Customer, CustomerTransaction, Order, Purchase, Expense, Waste, Account } from './types';
 import { 
     products as initialProducts, 
     ingredients as initialIngredients, 
@@ -11,7 +12,7 @@ import {
     expenses as initialExpenses 
 } from './data';
 
-const STORE_VERSION = '1.4'; // Version with Order.totalCost
+const STORE_VERSION = '1.5'; // Version with Account object
 const VERSION_KEY = 'gym-canteen-version';
 const DATA_KEY = 'gym-canteen-app-data';
 
@@ -25,6 +26,13 @@ const INITIAL_DATA: AppData = {
   purchases: initialPurchases,
   manualExpenses: initialExpenses,
   waste: [],
+  account: {
+    businessName: 'بوفه باشگاه',
+    managerName: 'مدیر سیستم',
+    locale: 'fa-IR',
+    currency: 'TOMAN',
+    calendar: 'jalali',
+  }
 };
 
 // --- Data Normalization ---
@@ -107,6 +115,11 @@ function normalizeData(data: any): AppData {
         reason: w.reason || '',
     })).filter((w: Waste | null) => w && w.itemId && w.quantity > 0);
 
+    normalized.account = {
+      ...INITIAL_DATA.account,
+      ...(data.account || {}),
+    };
+
 
     return normalized;
 }
@@ -148,23 +161,19 @@ function loadData(): AppData {
   }
 }
 
-function saveData(dataUpdate: Partial<AppData>) {
+function saveData(dataUpdate: Partial<AppData> | ((currentData: AppData) => AppData)) {
   if (typeof window === 'undefined') return;
   
   try {
-    // Perform an atomic read-modify-write
     const currentData = loadData();
-    const newData = { ...currentData, ...dataUpdate };
+    const newData = typeof dataUpdate === 'function' ? dataUpdate(currentData) : { ...currentData, ...dataUpdate };
 
-    // Basic validation before saving
     if (!newData || typeof newData !== 'object' || !newData.products) {
         console.error("Attempted to save invalid data. Aborting.", newData);
         return;
     }
 
     localStorage.setItem(DATA_KEY, JSON.stringify(newData));
-    
-    // After a successful save, notify listeners
     notify();
   } catch (error) {
     console.error("Failed to save data to localStorage", error);
@@ -185,24 +194,18 @@ function subscribe(listener: () => void): () => void {
 }
 
 function getSnapshot(): AppData {
-  // Always return the in-memory version for sync access.
-  // The store is updated via `notify`.
   return appData;
 }
 
 function notify() {
-  // Reload the single source of truth from storage
   appData = loadData();
-  // Notify all subscribed components that the data has changed
   emit();
 }
 
 // Initial load
 if (typeof window !== 'undefined') {
   appData = loadData();
-  // Listen for changes in other tabs
   window.addEventListener('storage', (event) => {
-    // If our main data key changes, notify this tab
     if (event.key === DATA_KEY) {
       notify();
     }
@@ -213,15 +216,25 @@ export const dataStore = {
   subscribe,
   getSnapshot,
   saveData,
-  // Expose a function to reset data as a recovery mechanism
   resetData: () => {
-    localStorage.setItem(DATA_KEY, JSON.stringify(INITIAL_DATA));
-    localStorage.setItem(VERSION_KEY, STORE_VERSION);
+    localStorage.removeItem(DATA_KEY);
+    localStorage.removeItem(VERSION_KEY);
     notify();
+  },
+  importData: (importedData: AppData) => {
+     try {
+        const normalized = normalizeData(importedData);
+        localStorage.setItem(DATA_KEY, JSON.stringify(normalized));
+        localStorage.setItem(VERSION_KEY, STORE_VERSION);
+        notify();
+        return true;
+     } catch (e) {
+        console.error("Failed to import data", e);
+        return false;
+     }
   }
 };
 
 export function useAppData(): AppData {
-  // useSyncExternalStore is the correct hook for subscribing to external mutable sources like localStorage
   return useSyncExternalStore(dataStore.subscribe, dataStore.getSnapshot, () => INITIAL_DATA);
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -13,6 +14,9 @@ import {
   Receipt,
   Truck,
   Trash2,
+  Settings,
+  CircleUser,
+  LifeBuoy,
 } from 'lucide-react';
 
 import {
@@ -21,7 +25,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 
-const links = [
+const mainLinks = [
   { href: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
   { href: '/orders', label: 'سفارشات', icon: ShoppingCart },
   { href: '/products', label: 'محصولات', icon: Package },
@@ -34,12 +38,17 @@ const links = [
   { href: '/expenses', label: 'هزینه‌ها', icon: Receipt },
 ];
 
+const accountLinks = [
+    { href: '/account', label: 'حساب کاربری', icon: CircleUser },
+    { href: '/settings', label: 'تنظیمات', icon: Settings },
+    { href: '/support', label: 'پشتیبانی', icon: LifeBuoy },
+];
+
 export function MainNav() {
   const pathname = usePathname();
 
-  return (
-    <SidebarMenu>
-      {links.map((link) => {
+  const renderLinks = (links: {href:string, label:string, icon: React.ElementType}[]) => {
+    return links.map((link) => {
         const isActive = pathname.startsWith(link.href) && (link.href !== '/dashboard' || pathname === '/dashboard');
         return (
           <SidebarMenuItem key={link.href}>
@@ -54,7 +63,17 @@ export function MainNav() {
             </Link>
           </SidebarMenuItem>
         );
-      })}
-    </SidebarMenu>
+      });
+  }
+
+  return (
+    <>
+        <SidebarMenu>
+            {renderLinks(mainLinks)}
+        </SidebarMenu>
+        <SidebarMenu className="mt-auto">
+            {renderLinks(accountLinks)}
+        </SidebarMenu>
+    </>
   );
 }

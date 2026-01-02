@@ -1,3 +1,4 @@
+
 export type Product = {
   id: string;
   name: string;
@@ -17,7 +18,6 @@ export const unitLabels: Record<Unit, string> = {
     'l': 'لیتر',
     'count': 'عدد'
 };
-
 
 export type Ingredient = {
   id: string;
@@ -121,6 +121,16 @@ export type Waste = {
     reason: string;
 };
 
+export type Account = {
+  businessName: string;
+  managerName: string;
+  phone?: string;
+  avatarImage?: string;
+  locale: 'fa-IR';
+  currency: 'TOMAN';
+  calendar: 'jalali' | 'gregorian';
+};
+
 
 // Represents the entire state of the application
 export type AppData = {
@@ -133,4 +143,5 @@ export type AppData = {
   purchases: Purchase[];
   manualExpenses: Expense[];
   waste: Waste[];
+  account: Account;
 };

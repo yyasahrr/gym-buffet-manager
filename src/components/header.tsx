@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
-import { CircleUser, Search } from 'lucide-react';
+import { CircleUser, Search, Settings, LifeBuoy, LogOut } from 'lucide-react';
 
 import {
   Breadcrumb,
@@ -53,15 +54,17 @@ export function Header({ breadcrumbs, activeBreadcrumb, onSearch }: HeaderProps)
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <div className="relative md:grow-0">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="جستجو..."
-          className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
-          onChange={(e) => onSearch?.(e.target.value)}
-        />
-      </div>
+      {onSearch && (
+         <div className="relative md:grow-0">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="جستجو..."
+            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
+            onChange={(e) => onSearch?.(e.target.value)}
+          />
+        </div>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="icon" className="rounded-full">
@@ -72,10 +75,20 @@ export function Header({ breadcrumbs, activeBreadcrumb, onSearch }: HeaderProps)
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>حساب من</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>تنظیمات</DropdownMenuItem>
-          <DropdownMenuItem>پشتیبانی</DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/account"><CircleUser className="ml-2 h-4 w-4" />پروفایل</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings"><Settings className="ml-2 h-4 w-4" />تنظیمات</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/support"><LifeBuoy className="ml-2 h-4 w-4" />پشتیبانی</Link>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>خروج</DropdownMenuItem>
+          <DropdownMenuItem>
+            <LogOut className="ml-2 h-4 w-4" />
+            خروج
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
