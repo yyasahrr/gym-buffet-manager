@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAppData, dataStore } from '@/lib/store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 type DialogState = {
@@ -35,6 +36,11 @@ export default function CustomersPage() {
   const { toast } = useToast();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('active');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const customerBalances = useMemo(() => {
     const balances = new Map<string, number>();
@@ -224,6 +230,51 @@ export default function CustomersPage() {
       </CardFooter>
     </Card>
   );
+  
+  if (!isClient) {
+    return (
+        <div className="flex flex-col h-full">
+            <Header onSearch={setSearchQuery} breadcrumbs={[]} activeBreadcrumb="مشتریان" />
+            <main className="flex-1 p-4 sm:px-6 sm:py-6">
+                <PageHeader title="مشتریان">
+                  <Button><PlusCircle className="ml-2 h-4 w-4" /> افزودن مشتری</Button>
+                </PageHeader>
+                <Card>
+                    <CardHeader>
+                        <CardTitle><Skeleton className="h-6 w-48" /></CardTitle>
+                        <CardDescription><Skeleton className="h-4 w-64" /></CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                       <Table>
+                           <TableHeader>
+                               <TableRow>
+                                   <TableHead className="hidden w-[64px] sm:table-cell"><span className="sr-only">تصویر</span></TableHead>
+                                   <TableHead>نام</TableHead>
+                                   <TableHead>وضعیت حساب (تومان)</TableHead>
+                                   <TableHead><span className="sr-only">عملیات</span></TableHead>
+                               </TableRow>
+                           </TableHeader>
+                           <TableBody>
+                               <TableRow>
+                                   <TableCell className="hidden sm:table-cell"><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
+                                   <TableCell><Skeleton className="h-6 w-32" /></TableCell>
+                                   <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                                   <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                               </TableRow>
+                                <TableRow>
+                                   <TableCell className="hidden sm:table-cell"><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
+                                   <TableCell><Skeleton className="h-6 w-32" /></TableCell>
+                                   <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                                   <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                               </TableRow>
+                           </TableBody>
+                       </Table>
+                    </CardContent>
+                </Card>
+            </main>
+        </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full">
