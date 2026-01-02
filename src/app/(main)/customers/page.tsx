@@ -9,7 +9,6 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -147,12 +146,9 @@ export default function CustomersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="hidden w-[64px] sm:table-cell">
-                <span className="sr-only">تصویر</span>
-              </TableHead>
               <TableHead>نام</TableHead>
               <TableHead>وضعیت حساب (تومان)</TableHead>
-              <TableHead>
+              <TableHead className="text-left">
                 <span className="sr-only">عملیات</span>
               </TableHead>
             </TableRow>
@@ -162,15 +158,9 @@ export default function CustomersPage() {
               const balance = customerBalances.get(customer.id) || 0;
               return (
                 <TableRow key={customer.id}>
-                  <TableCell className="hidden sm:table-cell align-middle">
-                    <Avatar>
-                      <AvatarImage src={`https://i.pravatar.cc/40?u=${customer.name}`} alt="Avatar" />
-                      <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  </TableCell>
                   <TableCell className="font-medium align-middle">{customer.name}</TableCell>
-                  <TableCell className={cn('align-middle font-semibold', balance < 0 ? 'text-destructive' : 'text-primary')}>
-                    {balance < 0 ? `${Math.abs(balance).toLocaleString('fa-IR')} بدهکار` : `${balance.toLocaleString('fa-IR')} اعتبار`}
+                  <TableCell className={cn('align-middle font-semibold', balance < 0 ? 'text-destructive' : balance > 0 ? 'text-green-600' : 'text-muted-foreground')}>
+                    {balance === 0 ? '۰' : balance < 0 ? `${Math.abs(balance).toLocaleString('fa-IR')} بدهکار` : `${balance.toLocaleString('fa-IR')} اعتبار`}
                   </TableCell>
                   <TableCell className="text-left">
                     {customer.name !== 'مشتری حضوری' && (
@@ -248,7 +238,6 @@ export default function CustomersPage() {
                        <Table>
                            <TableHeader>
                                <TableRow>
-                                   <TableHead className="hidden w-[64px] sm:table-cell"><span className="sr-only">تصویر</span></TableHead>
                                    <TableHead>نام</TableHead>
                                    <TableHead>وضعیت حساب (تومان)</TableHead>
                                    <TableHead><span className="sr-only">عملیات</span></TableHead>
@@ -256,13 +245,11 @@ export default function CustomersPage() {
                            </TableHeader>
                            <TableBody>
                                <TableRow>
-                                   <TableCell className="hidden sm:table-cell"><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
                                    <TableCell><Skeleton className="h-6 w-32" /></TableCell>
                                    <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                                </TableRow>
                                 <TableRow>
-                                   <TableCell className="hidden sm:table-cell"><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
                                    <TableCell><Skeleton className="h-6 w-32" /></TableCell>
                                    <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>

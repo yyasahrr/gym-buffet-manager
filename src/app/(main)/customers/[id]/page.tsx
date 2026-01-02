@@ -149,7 +149,7 @@ export default function CustomerDetailPage() {
             <CardHeader>
               <CardTitle>اطلاعات مشتری</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">نام</span>
                 <span>{customer.name}</span>
@@ -160,9 +160,9 @@ export default function CustomerDetailPage() {
                   {customer.status === 'active' ? 'فعال' : 'بایگانی شده'}
                 </span>
               </div>
-              <div className="flex justify-between items-baseline">
+              <div className="flex justify-between items-baseline pt-2">
                 <span className="text-muted-foreground">موجودی فعلی</span>
-                <span className={cn('text-2xl font-bold', balance < 0 ? 'text-destructive' : 'text-primary')}>
+                <span className={cn('text-2xl font-bold', balance < 0 ? 'text-destructive' : balance > 0 ? 'text-green-600' : 'text-foreground')}>
                   {balance.toLocaleString('fa-IR')}
                   <span className="text-sm font-normal"> تومان</span>
                 </span>
@@ -181,7 +181,7 @@ export default function CustomerDetailPage() {
                     <TableHead>تاریخ</TableHead>
                     <TableHead>نوع</TableHead>
                     <TableHead>توضیحات</TableHead>
-                    <TableHead className="text-right">مبلغ (تومان)</TableHead>
+                    <TableHead className="text-left">مبلغ (تومان)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -194,7 +194,7 @@ export default function CustomerDetailPage() {
                         </span>
                       </TableCell>
                       <TableCell>{t.description}</TableCell>
-                      <TableCell className="text-right font-mono">
+                      <TableCell className="text-left font-mono">
                         {t.type === 'credit' ? '+' : '-'}{t.amount.toLocaleString('fa-IR')}
                       </TableCell>
                     </TableRow>
