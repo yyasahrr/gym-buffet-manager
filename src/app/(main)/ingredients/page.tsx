@@ -1,7 +1,6 @@
 'use client';
 
-import Image from 'next/image';
-import { PlusCircle, Upload, MoreHorizontal, Pencil, Trash2, Archive, ArchiveRestore } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Archive, ArchiveRestore } from 'lucide-react';
 import { ingredients as initialIngredients, foods as initialFoods, purchases as initialPurchases } from '@/lib/data';
 import { type Ingredient, type Unit } from '@/lib/types';
 import { unitLabels } from '@/lib/types';
@@ -25,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useEffect, useState, useMemo, ChangeEvent } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
@@ -78,7 +77,7 @@ export default function IngredientsPage() {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [dialogState, setDialogState] = useState<DialogState>({isOpen: false, mode: 'add', ingredient: null});
-    const [formData, setFormData] = useState<{name: string; unit: Unit, imageUrl?: string}>({ name: '', unit: 'g' });
+    const [formData, setFormData] = useState<{name: string; unit: Unit}>({ name: '', unit: 'g' });
     
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
@@ -106,7 +105,7 @@ export default function IngredientsPage() {
     const openDialog = (mode: 'add' | 'edit', ingredient: Ingredient | null = null) => {
         setDialogState({ isOpen: true, mode, ingredient });
         if (mode === 'edit' && ingredient) {
-            setFormData({ name: ingredient.name, unit: ingredient.unit, imageUrl: ingredient.imageUrl });
+            setFormData({ name: ingredient.name, unit: ingredient.unit });
         } else {
             setFormData({ name: '', unit: 'g' });
         }
@@ -116,19 +115,8 @@ export default function IngredientsPage() {
         setDialogState({ isOpen: false, mode: 'add', ingredient: null });
     };
     
-    const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData({ ...formData, imageUrl: reader.result as string });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-    
     const handleSaveIngredient = () => {
-        const { name, unit, imageUrl } = formData;
+        const { name, unit } = formData;
         if (!name || !unit) {
             toast({ variant: "destructive", title: "خطا", description: "لطفاً نام و واحد ماده اولیه را پر کنید." });
             return;
@@ -140,7 +128,6 @@ export default function IngredientsPage() {
                 name,
                 stock: 0,
                 avgBuyPrice: 0,
-                imageUrl,
                 unit,
                 status: 'active',
             };
@@ -150,7 +137,7 @@ export default function IngredientsPage() {
             toast({ title: "موفقیت‌آمیز", description: `ماده اولیه "${name}" با موفقیت اضافه شد.` });
         } else if (dialogState.mode === 'edit' && dialogState.ingredient) {
             const updatedIngredients = ingredients.map(ing => 
-                ing.id === dialogState.ingredient!.id ? { ...ing, name, unit, imageUrl } : ing
+                ing.id === dialogState.ingredient!.id ? { ...ing, name, unit } : ing
             );
             setIngredients(updatedIngredients);
             localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
@@ -211,6 +198,112 @@ export default function IngredientsPage() {
         setOpenMenuId(null);
     };
 
+    const renderTable = (ingredientList: Ingredient[]) => {
+       return (
+         <Card>
+            <CardHeader>
+                <CardTitle>{activeTab === 'active' ? 'انبار مواد اولیه فعال' : 'مواد اولیه بایگانی شده'}</CardTitle>
+                <CardDescription>
+                    {activeTab === 'active' ? 'مواد اولیه و موجودی انبار خود را مدیریت کنید.' : 'این موارد در لیست‌های خرید و دستور پخت نمایش داده نمی‌شوند.'}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>نام</TableHead>
+                            <TableHead>موجودی</TableHead>
+                            <TableHead>میانگین قیمت خرید</TableHead>
+                            <TableHead>
+                                <span className="sr-only">عملیات</span>
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isClient && ingredientList.map(ingredient => {
+                            const stockToDisplay = ingredient.stock;
+                            const unitLabel = unitLabels[ingredient.unit] || '';
+                            
+                            return (
+                                <TableRow key={ingredient.id}>
+                                    <TableCell className="font-medium align-middle">{ingredient.name}</TableCell>
+                                    <TableCell className="align-middle">
+                                        <Badge variant={stockToDisplay > 0 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
+                                    </TableCell>
+                                    <TableCell className="align-middle">
+                                        {ingredient.avgBuyPrice > 0 ? `${Math.round(ingredient.avgBuyPrice).toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-left">
+                                        <DropdownMenu open={openMenuId === ingredient.id} onOpenChange={(isOpen) => setOpenMenuId(isOpen ? ingredient.id : null)}>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">باز کردن منو</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                            {ingredient.status === 'active' ? (
+                                                <>
+                                                <DropdownMenuItem onClick={() => openDialog('edit', ingredient)}>
+                                                    <Pencil className="ml-2 h-4 w-4" />
+                                                    ویرایش
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleArchiveIngredient(ingredient.id)}>
+                                                    <Archive className="ml-2 h-4 w-4" />
+                                                    بایگانی
+                                                </DropdownMenuItem>
+                                                </>
+                                            ) : (
+                                                <>
+                                                <DropdownMenuItem onClick={() => handleRestoreIngredient(ingredient.id)}>
+                                                    <ArchiveRestore className="ml-2 h-4 w-4" />
+                                                    بازیابی
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                                            <Trash2 className="ml-2 h-4 w-4" />
+                                                            <span>حذف دائمی</span>
+                                                        </DropdownMenuItem>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>آیا مطمئن هستید؟</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                این عمل غیرقابل بازگشت است. فقط در صورتی ادامه دهید که مطمئن هستید این ماده اولیه هیچ سابقه خرید یا مصرفی ندارد و موجودی آن صفر است.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>لغو</AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                                className="bg-destructive hover:bg-destructive/90"
+                                                                onClick={() => handleDeleteIngredient(ingredient.id)}
+                                                            >
+                                                                تایید و حذف دائمی
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                                </>
+                                            )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
+                    </TableBody>
+                </Table>
+            </CardContent>
+            <CardFooter>
+                <div className="text-xs text-muted-foreground">
+                نمایش <strong>{ingredientList.length}</strong> از <strong>{ingredients.filter(i => i.status === activeTab).length}</strong> ماده اولیه
+                </div>
+            </CardFooter>
+        </Card>
+       )
+    }
 
     return (
         <div className="flex flex-col h-full">
@@ -227,170 +320,10 @@ export default function IngredientsPage() {
                         <TabsTrigger value="archived">بایگانی</TabsTrigger>
                     </TabsList>
                     <TabsContent value="active">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>انبار مواد اولیه فعال</CardTitle>
-                                <CardDescription>مواد اولیه و موجودی انبار خود را مدیریت کنید.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="hidden w-[100px] sm:table-cell">
-                                                <span className="sr-only">تصویر</span>
-                                            </TableHead>
-                                            <TableHead>نام</TableHead>
-                                            <TableHead>موجودی</TableHead>
-                                            <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
-                                            <TableHead>
-                                                <span className="sr-only">عملیات</span>
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {isClient && filteredIngredients.map(ingredient => {
-                                            const stockToDisplay = ingredient.stock;
-                                            const unitLabel = unitLabels[ingredient.unit] || '';
-                                            
-                                            return (
-                                                <TableRow key={ingredient.id}>
-                                                    <TableCell className="hidden sm:table-cell align-middle">
-                                                        {ingredient.imageUrl ? (
-                                                            <Image
-                                                                alt={ingredient.name}
-                                                                className="aspect-square rounded-md object-cover"
-                                                                height="64"
-                                                                src={ingredient.imageUrl}
-                                                                width="64"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">
-                                                                <span className="text-xs text-muted-foreground">No Image</span>
-                                                            </div>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="font-medium align-middle">{ingredient.name}</TableCell>
-                                                    <TableCell className="align-middle">
-                                                        <Badge variant={stockToDisplay > 0 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="hidden md:table-cell align-middle">
-                                                        {ingredient.avgBuyPrice > 0 ? `${Math.round(ingredient.avgBuyPrice).toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}
-                                                    </TableCell>
-                                                    <TableCell className="text-left">
-                                                        <DropdownMenu open={openMenuId === ingredient.id} onOpenChange={(isOpen) => setOpenMenuId(isOpen ? ingredient.id : null)}>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                    <span className="sr-only">باز کردن منو</span>
-                                                                    <MoreHorizontal className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={() => openDialog('edit', ingredient)}>
-                                                                    <Pencil className="ml-2 h-4 w-4" />
-                                                                    ویرایش
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleArchiveIngredient(ingredient.id)}>
-                                                                    <Archive className="ml-2 h-4 w-4" />
-                                                                    بایگانی
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            )
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                            <CardFooter>
-                                <div className="text-xs text-muted-foreground">
-                                نمایش <strong>{filteredIngredients.length}</strong> از <strong>{ingredients.filter(i => i.status === 'active').length}</strong> ماده اولیه فعال
-                                </div>
-                            </CardFooter>
-                        </Card>
+                       {renderTable(filteredIngredients)}
                     </TabsContent>
                      <TabsContent value="archived">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>مواد اولیه بایگانی شده</CardTitle>
-                                <CardDescription>این موارد در لیست‌های خرید و دستور پخت نمایش داده نمی‌شوند.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>نام</TableHead>
-                                            <TableHead>موجودی</TableHead>
-                                            <TableHead>
-                                                <span className="sr-only">عملیات</span>
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {isClient && filteredIngredients.map(ingredient => {
-                                            const stockToDisplay = ingredient.stock;
-                                            const unitLabel = unitLabels[ingredient.unit] || '';
-                                            
-                                            return (
-                                                <TableRow key={ingredient.id}>
-                                                    <TableCell className="font-medium align-middle">{ingredient.name}</TableCell>
-                                                    <TableCell className="align-middle">
-                                                        <Badge variant={stockToDisplay > 0 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-left">
-                                                        <DropdownMenu open={openMenuId === ingredient.id} onOpenChange={(isOpen) => setOpenMenuId(isOpen ? ingredient.id : null)}>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                    <span className="sr-only">باز کردن منو</span>
-                                                                    <MoreHorizontal className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={() => handleRestoreIngredient(ingredient.id)}>
-                                                                    <ArchiveRestore className="ml-2 h-4 w-4" />
-                                                                    بازیابی
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <AlertDialog>
-                                                                    <AlertDialogTrigger asChild>
-                                                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                                                            <Trash2 className="ml-2 h-4 w-4" />
-                                                                            <span>حذف دائمی</span>
-                                                                        </DropdownMenuItem>
-                                                                    </AlertDialogTrigger>
-                                                                    <AlertDialogContent>
-                                                                        <AlertDialogHeader>
-                                                                            <AlertDialogTitle>آیا مطمئن هستید؟</AlertDialogTitle>
-                                                                            <AlertDialogDescription>
-                                                                                این عمل غیرقابل بازگشت است. فقط در صورتی ادامه دهید که مطمئن هستید این ماده اولیه هیچ سابقه خرید یا مصرفی ندارد و موجودی آن صفر است.
-                                                                            </AlertDialogDescription>
-                                                                        </AlertDialogHeader>
-                                                                        <AlertDialogFooter>
-                                                                            <AlertDialogCancel>لغو</AlertDialogCancel>
-                                                                            <AlertDialogAction
-                                                                                className="bg-destructive hover:bg-destructive/90"
-                                                                                onClick={() => handleDeleteIngredient(ingredient.id)}
-                                                                            >
-                                                                                تایید و حذف دائمی
-                                                                            </AlertDialogAction>
-                                                                        </AlertDialogFooter>
-                                                                    </AlertDialogContent>
-                                                                </AlertDialog>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            )
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                             <CardFooter>
-                                <div className="text-xs text-muted-foreground">
-                                نمایش <strong>{filteredIngredients.length}</strong> از <strong>{ingredients.filter(i => i.status === 'archived').length}</strong> ماده اولیه بایگانی شده
-                                </div>
-                            </CardFooter>
-                        </Card>
+                        {renderTable(filteredIngredients)}
                     </TabsContent>
                 </Tabs>
                 
@@ -427,15 +360,6 @@ export default function IngredientsPage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="image-upload" className="text-right">تصویر</Label>
-                                <div className="col-span-3">
-                                    <Input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                                    <Label htmlFor="image-upload" className="cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-4 text-sm text-muted-foreground hover:bg-muted">
-                                        {formData.imageUrl ? <Image src={formData.imageUrl} alt="Preview" width={80} height={80} className="rounded-md object-cover"/> : <><Upload className="mr-2 h-4 w-4"/> <span>آپلود تصویر</span></>}
-                                    </Label>
-                                </div>
                             </div>
                         </div>
                         <DialogFooter>

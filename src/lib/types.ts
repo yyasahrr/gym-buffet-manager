@@ -24,7 +24,6 @@ export type Ingredient = {
   name: string;
   stock: number;
   avgBuyPrice: number; // Price per single unit ('g', 'ml', 'count')
-  imageUrl?: string; 
   unit: Unit;
   status: 'active' | 'archived';
 };
