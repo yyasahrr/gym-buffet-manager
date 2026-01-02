@@ -30,7 +30,6 @@ export default function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // New state for multi-line purchase form
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString());
   const [transportCost, setTransportCost] = useState('');
   const [note, setNote] = useState('');
@@ -89,34 +88,40 @@ export default function PurchasesPage() {
   
   const subtotal = useMemo(() => {
     return purchaseItems.reduce((sum, item) => {
-      const itemCost = (item.quantity || 0) * (item.unitPrice || 0);
-      return sum + itemCost;
+      return sum + (item.lineTotalCost || 0);
     }, 0);
   }, [purchaseItems]);
 
   const handleAddPurchase = () => {
     // --- Validation ---
     const finalTransportCost = parseFloat(transportCost) || 0;
+    if (finalTransportCost < 0) {
+        toast({ variant: 'destructive', title: 'خطا', description: 'هزینه حمل و نقل نمی‌تواند منفی باشد.' });
+        return;
+    }
     
     const validItems = purchaseItems.filter(
-      item => item.itemId && (item.quantity || 0) > 0 && (item.unitPrice || 0) >= 0
-    ).map(item => ({...item, id: `p-item-${Date.now()}-${Math.random()}`} as PurchaseItem));
+      item => item.itemId && (item.quantity || 0) > 0 && (item.lineTotalCost || 0) > 0
+    ).map(item => ({
+        ...item,
+        id: `p-item-${Date.now()}-${Math.random()}`
+    } as PurchaseItem));
 
     if (validItems.length === 0) {
-      toast({ variant: 'destructive', title: 'خطا', description: 'حداقل یک ردیف خرید معتبر وارد کنید.' });
+      toast({ variant: 'destructive', title: 'خطا', description: 'حداقل یک ردیف خرید معتبر با مقدار و مبلغ کل مثبت وارد کنید.' });
       return;
     }
 
-    const totalBaseCost = validItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const totalBaseCost = validItems.reduce((sum, item) => sum + item.lineTotalCost, 0);
 
     // --- Logic ---
     const ingredientsToUpdate = new Map<string, Ingredient>();
     const productsToUpdate = new Map<string, Product>();
 
     for (const item of validItems) {
-      const itemBaseCost = item.quantity * item.unitPrice;
+      const itemBaseCost = item.lineTotalCost;
       const transportShare = totalBaseCost > 0 ? (itemBaseCost / totalBaseCost) * finalTransportCost : 0;
-      const finalUnitCost = item.unitPrice + (transportShare / item.quantity);
+      const finalUnitCost = (itemBaseCost + transportShare) / item.quantity;
       
       if (item.type === 'ingredient') {
         const originalIngredient = ingredients.find(i => i.id === item.itemId.split('-')[1]);
@@ -218,9 +223,10 @@ export default function PurchasesPage() {
                   {purchaseItems.map((item, index) => {
                      const selectedItem = allItemsMap.get(item.itemId || '');
                      const unitLabel = selectedItem && 'unit' in selectedItem ? unitLabels[selectedItem.unit] : 'عدد';
+                     const calculatedUnitPrice = (item.lineTotalCost || 0) / (item.quantity || 1);
 
                     return (
-                        <div key={index} className="grid grid-cols-12 gap-2 items-end p-2 border rounded-md">
+                        <div key={index} className="grid grid-cols-12 gap-2 items-start p-2 border rounded-md">
                           <div className="col-span-12 md:col-span-4 space-y-2">
                             <Label>نام کالا</Label>
                             <Select value={item.itemId} onValueChange={val => handleItemChange(index, 'itemId', val)}>
@@ -242,10 +248,15 @@ export default function PurchasesPage() {
                             <Input type="number" placeholder="0" value={item.quantity || ''} onChange={e => handleItemChange(index, 'quantity', parseFloat(e.target.value))} />
                           </div>
                           <div className="col-span-6 md:col-span-4 space-y-2">
-                            <Label>قیمت واحد (تومان)</Label>
-                            <Input type="number" placeholder="0" value={item.unitPrice || ''} onChange={e => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} />
+                            <Label>مبلغ کل ردیف (تومان)</Label>
+                            <Input type="number" placeholder="0" value={item.lineTotalCost || ''} onChange={e => handleItemChange(index, 'lineTotalCost', parseFloat(e.target.value))} />
+                             {item.lineTotalCost && item.quantity ? (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    قیمت واحد محاسبه‌شده: {Math.round(calculatedUnitPrice).toLocaleString('fa-IR')} تومان / {unitLabel}
+                                </p>
+                             ) : null}
                           </div>
-                          <div className="col-span-12 md:col-span-1 flex justify-end">
+                          <div className="col-span-12 md:col-span-1 flex justify-end items-center pt-6">
                             <Button variant="ghost" size="icon" onClick={() => removePurchaseLine(index)} disabled={purchaseItems.length === 1}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -307,7 +318,16 @@ export default function PurchasesPage() {
               <TableBody>
                 {purchases.length > 0 ? (
                   [...purchases].reverse().map(pur => {
-                    const totalValue = (pur.items || []).reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0) + (pur.transportCost || 0);
+                    const totalValue = (pur.items || []).reduce((sum, item) => {
+                         // Backward compatibility for old data structure
+                        if (item.lineTotalCost) {
+                            return sum + item.lineTotalCost;
+                        } else if (item.unitPrice && item.quantity) {
+                            return sum + (item.unitPrice * item.quantity);
+                        }
+                        return sum;
+                    }, 0) + (pur.transportCost || 0);
+
                     return (
                         <TableRow key={pur.id}>
                             <TableCell>{formatJalali(new Date(pur.date), 'yyyy/MM/dd')}</TableCell>

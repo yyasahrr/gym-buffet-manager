@@ -76,7 +76,8 @@ export type PurchaseItem = {
     itemId: string;
     itemName: string; // denormalized for easier display
     quantity: number;
-    unitPrice: number;
+    lineTotalCost: number; // Total cost for the quantity entered
+    unitPrice?: number; // Legacy support
 };
 
 export type Purchase = {
