@@ -10,7 +10,6 @@ import placeholderImages from '@/lib/placeholder-images.json';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -131,13 +130,13 @@ export default function OrderClient() {
             className="cursor-pointer hover:shadow-lg hover:border-primary transition-all group overflow-hidden"
           >
             <CardContent className="p-0">
-                <div className="aspect-video relative">
+                <div className="aspect-square relative">
                     {image && <Image src={image.imageUrl} alt={item.name} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={image.imageHint}/>}
                 </div>
             </CardContent>
             <CardHeader className="p-3">
-              <CardTitle className="text-base leading-tight">{item.name}</CardTitle>
-              <p className="text-lg font-semibold text-primary">{item.sellPrice.toLocaleString('fa-IR')} تومان</p>
+              <CardTitle className="text-sm md:text-base leading-tight">{item.name}</CardTitle>
+              <p className="text-sm md:text-base font-semibold text-primary">{item.sellPrice.toLocaleString('fa-IR')} تومان</p>
             </CardHeader>
           </Card>
         );
@@ -149,7 +148,7 @@ export default function OrderClient() {
     <div className="grid lg:grid-cols-3 gap-8 items-start">
       <div className="lg:col-span-2">
         <Tabs defaultValue="foods">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="foods">غذاها</TabsTrigger>
             <TabsTrigger value="products">محصولات</TabsTrigger>
           </TabsList>
@@ -164,7 +163,7 @@ export default function OrderClient() {
 
       <Card className="lg:sticky lg:top-20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <ShoppingCart className="h-5 w-5"/>
             سفارش فعلی
           </CardTitle>

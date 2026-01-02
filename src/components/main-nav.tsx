@@ -34,7 +34,7 @@ export function MainNav() {
   return (
     <SidebarMenu>
       {links.map((link) => {
-        const isActive = pathname.startsWith(link.href);
+        const isActive = pathname === link.href;
         return (
           <SidebarMenuItem key={link.href}>
             <SidebarMenuButton

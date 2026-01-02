@@ -9,7 +9,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -36,14 +35,14 @@ export default function RecipesPage() {
             <PlusCircle className="mr-2 h-4 w-4" /> ایجاد دستور پخت
           </Button>
         </PageHeader>
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           {foods.map(food => {
             const cost = calculateCost(food.recipe);
             const profit = food.sellPrice - cost;
             const image = imageMap.get(food.imageId);
 
             return (
-              <Card key={food.id}>
+              <Card key={food.id} className="overflow-hidden">
                 <CardHeader className="p-0 border-b">
                   {image && (
                      <div className="aspect-video relative">
@@ -51,7 +50,7 @@ export default function RecipesPage() {
                             src={image.imageUrl}
                             alt={food.name}
                             fill
-                            className="object-cover rounded-t-lg"
+                            className="object-cover"
                             data-ai-hint={image.imageHint}
                         />
                      </div>
