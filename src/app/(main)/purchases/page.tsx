@@ -18,10 +18,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { type Ingredient, type Product, type Purchase, type PurchaseItem, unitLabels } from '@/lib/types';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useAppData, dataStore } from '@/lib/store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 type DialogState = {
@@ -48,6 +48,11 @@ export default function PurchasesPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('active');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const activeIngredients = useMemo(() => ingredients.filter(i => i.status === 'active'), [ingredients]);
   const activeProducts = useMemo(() => products.filter(p => p.status === 'active'), [products]);
@@ -250,6 +255,18 @@ export default function PurchasesPage() {
       // Hard delete is generally discouraged for financial records.
       // We recommend archiving instead. This is a placeholder for a safe-delete check.
       // For now, we will simply filter it out.
+      const purchaseToDelete = purchases.find(p => p.id === purchaseId);
+      if (!purchaseToDelete) return;
+
+      if (purchaseToDelete.status !== 'archived') {
+         toast({
+            variant: "destructive",
+            title: "حذف امکان‌پذیر نیست",
+            description: "فقط فاکتورهای بایگانی شده را می‌توان برای همیشه حذف کرد.",
+          });
+        return;
+      }
+      // In a real app, you'd check for dependencies before hard deleting.
       const updatedPurchases = purchases.filter(p => p.id !== purchaseId);
       dataStore.saveData({ purchases: updatedPurchases });
       toast({ title: 'فاکتور برای همیشه حذف شد' });
@@ -294,8 +311,8 @@ export default function PurchasesPage() {
                               <DropdownMenuContent align="end">
                                   {pur.status !== 'archived' ? (
                                       <>
-                                          <DropdownMenuItem onClick={() => openDialog('edit', pur)} disabled>
-                                              <Pencil className="ml-2 h-4 w-4" /> ویرایش (غیرفعال)
+                                          <DropdownMenuItem onClick={() => openDialog('edit', pur)}>
+                                              <Pencil className="ml-2 h-4 w-4" /> ویرایش
                                           </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => handleArchivePurchase(pur.id)}>
                                               <Archive className="ml-2 h-4 w-4" /> بایگانی
@@ -315,7 +332,7 @@ export default function PurchasesPage() {
                                                 <AlertDialogContent>
                                                   <AlertDialogHeader>
                                                     <AlertDialogTitle>آیا مطمئن هستید؟</AlertDialogTitle>
-                                                    <AlertDialogDescription>این عمل غیرقابل بازگشت است و بر موجودی و میانگین قیمت خرید تاثیر منفی خواهد گذاشت.</AlertDialogDescription>
+                                                    <AlertDialogDescription>این عمل غیرقابل بازگشت است و ممکن است بر میانگین قیمت خرید تاثیر بگذارد. توصیه می‌شود به جای حذف، بایگانی کنید.</AlertDialogDescription>
                                                   </AlertDialogHeader>
                                                   <AlertDialogFooter>
                                                     <AlertDialogCancel>لغو</AlertDialogCancel>
@@ -348,13 +365,41 @@ export default function PurchasesPage() {
         </CardFooter>
     </Card>
  );
+ 
+ const renderSkeleton = () => (
+     <Card>
+        <CardHeader>
+            <Skeleton className="h-7 w-48" />
+            <Skeleton className="h-4 w-64" />
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        {[...Array(5)].map((_, i) => <TableHead key={i}><Skeleton className="h-6 w-full" /></TableHead>)}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {[...Array(3)].map((_, i) => (
+                        <TableRow key={i}>
+                            {[...Array(5)].map((_, j) => <TableCell key={j}><Skeleton className="h-6 w-full" /></TableCell>)}
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </CardContent>
+        <CardFooter>
+            <Skeleton className="h-4 w-40" />
+        </CardFooter>
+     </Card>
+ );
 
   return (
     <div className="flex flex-col h-full">
       <Header breadcrumbs={[]} activeBreadcrumb="خرید" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="ثبت خرید">
-          <Dialog open={dialogState.isOpen} onOpenChange={(isOpen) => { if (!isOpen) closeDialog(); else openDialog('add'); }}>
+          <Dialog open={dialogState.isOpen} onOpenChange={(isOpen) => { if (!isOpen) closeDialog(); }}>
             <DialogTrigger asChild>
               <Button onClick={() => openDialog('add')}>
                 <PlusCircle className="ml-2 h-4 w-4" /> ثبت فاکتور خرید
@@ -368,11 +413,11 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">تاریخ فاکتور</Label>
-                    <Input id="date" type="date" value={format(new Date(purchaseDate), 'yyyy-MM-dd')} onChange={(e) => setPurchaseDate(new Date(e.target.value).toISOString())} />
+                    <Input id="date" type="date" value={format(new Date(purchaseDate), 'yyyy-MM-dd')} onChange={(e) => setPurchaseDate(new Date(e.target.value).toISOString())} disabled={dialogState.mode === 'edit'} />
                   </div>
                    <div className="space-y-2">
                     <Label htmlFor="note">یادداشت (اختیاری)</Label>
-                    <Input id="note" value={note} onChange={e => setNote(e.target.value)} />
+                    <Input id="note" value={note} onChange={e => setNote(e.target.value)} disabled={dialogState.mode === 'edit'} />
                 </div>
                 </div>
 
@@ -392,7 +437,7 @@ export default function PurchasesPage() {
                             <Label>نام کالا</Label>
                             <Select value={item.itemId} onValueChange={val => handleItemChange(index, 'itemId', val)} disabled={isEditDisabled}>
                               <SelectTrigger><SelectValue placeholder="انتخاب کالا..." /></SelectTrigger>
-                              <SelectContent>
+                              <SelectContent position="popper">
                                 <SelectGroup>
                                     <Label className='px-4 py-2 text-sm font-semibold'>محصولات</Label>
                                     {activeProducts.map(p => <SelectItem key={`product-${p.id}`} value={`product-${p.id}`}>{p.name}</SelectItem>)}
@@ -455,7 +500,7 @@ export default function PurchasesPage() {
               </div>
               <DialogFooter className="pt-4 border-t">
                 <Button type="button" variant="secondary" onClick={closeDialog}>لغو</Button>
-                <Button type="submit" onClick={handleSavePurchase}>ثبت فاکتور</Button>
+                <Button type="submit" onClick={handleSavePurchase}>{dialogState.mode === 'add' ? 'ثبت فاکتور' : 'ذخیره تغییرات'}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -467,10 +512,10 @@ export default function PurchasesPage() {
                 <TabsTrigger value="archived">بایگانی</TabsTrigger>
             </TabsList>
             <TabsContent value="active">
-                {renderTable(filteredPurchases)}
+                {isClient ? renderTable(filteredPurchases) : renderSkeleton()}
             </TabsContent>
             <TabsContent value="archived">
-                {renderTable(filteredPurchases)}
+                {isClient ? renderTable(filteredPurchases) : renderSkeleton()}
             </TabsContent>
         </Tabs>
         
