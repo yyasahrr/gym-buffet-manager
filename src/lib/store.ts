@@ -11,22 +11,9 @@ import {
     expenses as initialExpenses 
 } from './data';
 
-const { AbortController, AbortSignal } = typeof window !== 'undefined' ? window : { AbortController: function() { return { signal: {} as AbortSignal, abort: () => {} } }, AbortSignal: {} as any };
-
-
-const STORE_VERSION = '1.1'; // Increment version for new structure
+const STORE_VERSION = '1.2'; // Version for the single-object store
 const VERSION_KEY = 'gym-canteen-version';
-
-const KEYS = {
-  PRODUCTS: 'gym-canteen-products',
-  INGREDIENTS: 'gym-canteen-ingredients',
-  FOODS: 'gym-canteen-foods',
-  CUSTOMERS: 'gym-canteen-customers',
-  CUSTOMER_TRANSACTIONS: 'gym-canteen-customer-transactions',
-  ORDERS: 'gym-canteen-orders',
-  PURCHASES: 'gym-canteen-purchases',
-  MANUAL_EXPENSES: 'gym-canteen-expenses',
-};
+const DATA_KEY = 'gym-canteen-app-data';
 
 const INITIAL_DATA: AppData = {
   products: initialProducts,
@@ -49,63 +36,66 @@ function loadData(): AppData {
   
   try {
     const storedVersion = localStorage.getItem(VERSION_KEY);
-    if (storedVersion !== STORE_VERSION) {
-      console.log(`Store version mismatch. Clearing old data. Old: ${storedVersion}, New: ${STORE_VERSION}`);
-      // Clear old data if version mismatch
-      Object.values(KEYS).forEach(key => localStorage.removeItem(key));
-      localStorage.setItem(VERSION_KEY, STORE_VERSION);
-      
-      // Seed with initial data
-      Object.entries(INITIAL_DATA).forEach(([key, value]) => {
-          const storageKey = KEYS[key.replace(/([A-Z])/g, '_$1').toUpperCase() as keyof typeof KEYS];
-          if(storageKey) {
-            localStorage.setItem(storageKey, JSON.stringify(value));
-          }
-      });
+    const rawData = localStorage.getItem(DATA_KEY);
 
+    if (storedVersion !== STORE_VERSION || !rawData) {
+      console.log(`Store version mismatch or no data. Initializing store. Old: ${storedVersion}, New: ${STORE_VERSION}`);
+      
+      localStorage.setItem(VERSION_KEY, STORE_VERSION);
+      localStorage.setItem(DATA_KEY, JSON.stringify(INITIAL_DATA));
+      
       return { ...INITIAL_DATA };
     }
 
-    const loadedData = {
-      products: JSON.parse(localStorage.getItem(KEYS.PRODUCTS) || 'null') || INITIAL_DATA.products,
-      ingredients: JSON.parse(localStorage.getItem(KEYS.INGREDIENTS) || 'null') || INITIAL_DATA.ingredients,
-      foods: JSON.parse(localStorage.getItem(KEYS.FOODS) || 'null') || INITIAL_DATA.foods,
-      customers: JSON.parse(localStorage.getItem(KEYS.CUSTOMERS) || 'null') || INITIAL_DATA.customers,
-      customerTransactions: JSON.parse(localStorage.getItem(KEYS.CUSTOMER_TRANSACTIONS) || 'null') || INITIAL_DATA.customerTransactions,
-      orders: JSON.parse(localStorage.getItem(KEYS.ORDERS) || 'null') || INITIAL_DATA.orders,
-      purchases: JSON.parse(localStorage.getItem(KEYS.PURCHASES) || 'null') || INITIAL_DATA.purchases,
-      manualExpenses: JSON.parse(localStorage.getItem(KEYS.MANUAL_EXPENSES) || 'null') || INITIAL_DATA.manualExpenses,
-    };
+    const loadedData = JSON.parse(rawData);
     
-    // Seed initial data if a key is missing
+    // Basic validation to ensure it's not malformed
+    if (typeof loadedData !== 'object' || loadedData === null || !loadedData.products) {
+        throw new Error("Loaded data is not a valid AppData object.");
+    }
+    
+    // Ensure all top-level keys exist, falling back to initial data if not
     let dataChanged = false;
     for (const key of Object.keys(INITIAL_DATA) as Array<keyof AppData>) {
-      const storageKey = KEYS[key.replace(/([A-Z])/g, '_$1').toUpperCase() as keyof typeof KEYS];
-      if (storageKey && !localStorage.getItem(storageKey)) {
-        localStorage.setItem(storageKey, JSON.stringify(INITIAL_DATA[key]));
-        dataChanged = true;
-      }
+        if (!loadedData.hasOwnProperty(key)) {
+            loadedData[key] = INITIAL_DATA[key];
+            dataChanged = true;
+        }
+    }
+    if (dataChanged) {
+        console.warn("Loaded data was missing keys, patched with initial data.");
+        localStorage.setItem(DATA_KEY, JSON.stringify(loadedData));
     }
 
-    return loadedData;
+
+    return loadedData as AppData;
   } catch (error) {
-    console.error("Failed to load data from localStorage", error);
+    console.error("Failed to load or parse data from localStorage, falling back to initial data.", error);
+    // If anything goes wrong, reset to a known good state
+    localStorage.setItem(VERSION_KEY, STORE_VERSION);
+    localStorage.setItem(DATA_KEY, JSON.stringify(INITIAL_DATA));
     return { ...INITIAL_DATA };
   }
 }
 
-function saveData(data: Partial<AppData>) {
+function saveData(dataUpdate: Partial<AppData>) {
   if (typeof window === 'undefined') return;
+  
   try {
-    if(data.products) localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(data.products));
-    if(data.ingredients) localStorage.setItem(KEYS.INGREDIENTS, JSON.stringify(data.ingredients));
-    if(data.foods) localStorage.setItem(KEYS.FOODS, JSON.stringify(data.foods));
-    if(data.customers) localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(data.customers));
-    if(data.customerTransactions) localStorage.setItem(KEYS.CUSTOMER_TRANSACTIONS, JSON.stringify(data.customerTransactions));
-    if(data.orders) localStorage.setItem(KEYS.ORDERS, JSON.stringify(data.orders));
-    if(data.purchases) localStorage.setItem(KEYS.PURCHASES, JSON.stringify(data.purchases));
-    if(data.manualExpenses) localStorage.setItem(KEYS.MANUAL_EXPENSES, JSON.stringify(data.manualExpenses));
+    // Perform an atomic read-modify-write
+    const currentData = loadData();
+    const newData = { ...currentData, ...dataUpdate };
+
+    // Basic validation before saving
+    if (!newData || typeof newData !== 'object' || !newData.products) {
+        console.error("Attempted to save invalid data. Aborting.", newData);
+        // Optionally, throw an error or show a toast to the user
+        return;
+    }
+
+    localStorage.setItem(DATA_KEY, JSON.stringify(newData));
     
+    // After a successful save, notify listeners
     notify();
   } catch (error) {
     console.error("Failed to save data to localStorage", error);
@@ -130,7 +120,9 @@ function getSnapshot(): AppData {
 }
 
 function notify() {
+  // Reload the single source of truth from storage
   appData = loadData();
+  // Notify all subscribed components that the data has changed
   emit();
 }
 
@@ -139,7 +131,8 @@ if (typeof window !== 'undefined') {
   appData = loadData();
   // Listen for changes in other tabs
   window.addEventListener('storage', (event) => {
-    if (Object.values(KEYS).includes(event.key || '')) {
+    // If our main data key changes, notify this tab
+    if (event.key === DATA_KEY) {
       notify();
     }
   });
@@ -152,5 +145,6 @@ export const dataStore = {
 };
 
 export function useAppData(): AppData {
+  // useSyncExternalStore is the correct hook for subscribing to external mutable sources like localStorage
   return useSyncExternalStore(dataStore.subscribe, dataStore.getSnapshot, dataStore.getSnapshot);
 }
