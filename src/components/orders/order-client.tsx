@@ -84,53 +84,56 @@ export default function OrderClient() {
       ingredients: allIngredients,
     };
     
-    const existingCartItem = cart.find(ci => ci.item.id === item.id);
-    const newQuantity = (existingCartItem?.quantity || 0) + 1;
-
+    // We check if we can fulfill one more of this item, considering what's already in the cart.
     if (!canFulfillOrderItem({item, quantity: 1}, currentInventory, cart)) {
       toast({
         variant: "destructive",
         title: "موجودی ناکافی",
-        description: `موجودی برای "${item.name}" کافی نیست.`,
+        description: `موجودی برای افزودن "${item.name}" کافی نیست.`,
       });
       return;
     }
-
+  
     setCart((prevCart) => {
+      const existingCartItem = prevCart.find((ci) => ci.item.id === item.id);
       if (existingCartItem) {
         return prevCart.map((cartItem) =>
-          cartItem.item.id === item.id ? { ...cartItem, quantity: newQuantity } : cartItem
+          cartItem.item.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
         );
       }
       return [...prevCart, { item, quantity: 1 }];
     });
   };
 
-  const updateQuantity = (itemId: string, quantity: number) => {
+  const updateQuantity = (itemId: string, newQuantity: number) => {
     const itemInCart = cart.find(ci => ci.item.id === itemId)?.item;
     if (!itemInCart) return;
+
+    const currentQuantityInCart = cart.find(ci => ci.item.id === itemId)?.quantity || 0;
   
-    if (quantity > 0) {
+    if (newQuantity <= 0) {
+      setCart((prevCart) => prevCart.filter((item) => item.item.id !== itemId));
+      return;
+    }
+    
+    // Only check stock if we are increasing the quantity
+    if (newQuantity > currentQuantityInCart) {
       const currentInventory = { products, ingredients: allIngredients };
-      // Check if increasing quantity is possible
-      if (quantity > (cart.find(ci => ci.item.id === itemId)?.quantity || 0)) {
-         if (!canFulfillOrderItem({item: itemInCart, quantity: 1}, currentInventory, cart)) {
-          toast({
-            variant: "destructive",
-            title: "موجودی ناکافی",
-            description: `موجودی برای افزودن یک عدد دیگر از "${itemInCart.name}" کافی نیست.`,
-          });
-          return;
-         }
+      const tempCart = cart.map(ci => ci.item.id === itemId ? {...ci, quantity: newQuantity -1 } : ci);
+      
+      if (!canFulfillOrderItem({item: itemInCart, quantity: 1}, currentInventory, tempCart)) {
+        toast({
+          variant: "destructive",
+          title: "موجودی ناکافی",
+          description: `موجودی برای افزودن یک عدد دیگر از "${itemInCart.name}" کافی نیست.`,
+        });
+        return;
       }
     }
 
-    setCart((prevCart) => {
-      if (quantity <= 0) {
-        return prevCart.filter((item) => item.item.id !== itemId);
-      }
-      return prevCart.map((item) => (item.item.id === itemId ? { ...item, quantity } : item));
-    });
+    setCart((prevCart) => 
+        prevCart.map((item) => (item.item.id === itemId ? { ...item, quantity: newQuantity } : item))
+    );
   };
 
   const cartTotal = useMemo(() => {
@@ -222,21 +225,34 @@ export default function OrderClient() {
   const filteredFoods = useMemo(() => foods.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())), [foods, searchQuery]);
   const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())), [products, searchQuery]);
 
-  const ItemGrid = ({ items }: { items: (Product | Food)[] }) => (
+  const ItemGrid = ({ items }: { items: (Product | Food)[] }) => {
+    // We create a temporary inventory map for quick lookups inside this render function.
+    const tempProductMap = new Map(products.map(p => [p.id, p]));
+    const tempIngredientMap = new Map(allIngredients.map(i => [i.id, i]));
+    
+    return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {items.map((item) => {
         const image = imageMap.get(item.imageId);
         const isFood = 'recipe' in item;
         let stock: number | string;
-        if(isFood){
-          const ingredientStocks = item.recipe.map(recipeItem => {
-            const ingredient = ingredientMap.get(recipeItem.ingredientId);
-            if(!ingredient) return 0;
-            return Math.floor(ingredient.stock / recipeItem.quantity);
-          });
-          stock = Math.min(...ingredientStocks);
+        
+        if (isFood) {
+          // Calculate how many times we can make this food item.
+          const recipe = item.recipe;
+          if (recipe.length === 0) {
+            stock = Infinity; // Assumes it can always be made if no ingredients.
+          } else {
+            const possibleCounts = recipe.map(recipeItem => {
+              const ingredient = tempIngredientMap.get(recipeItem.ingredientId);
+              if (!ingredient || ingredient.stock <= 0 || recipeItem.quantity <= 0) return 0;
+              return Math.floor(ingredient.stock / recipeItem.quantity);
+            });
+            stock = Math.min(...possibleCounts);
+          }
         } else {
-          stock = (productMap.get(item.id) as Product)?.stock ?? 0;
+          // It's a product, just get its stock.
+          stock = tempProductMap.get(item.id)?.stock ?? 0;
         }
 
         const isAvailable = stock > 0;
@@ -268,7 +284,8 @@ export default function OrderClient() {
         );
       })}
     </div>
-  );
+    )
+  };
 
   return (
     <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -408,3 +425,5 @@ export default function OrderClient() {
     </div>
   );
 }
+
+    
