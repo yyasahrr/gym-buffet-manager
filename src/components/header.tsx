@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { CircleUser, Search } from "lucide-react";
+import Link from 'next/link';
+import { CircleUser, Search } from 'lucide-react';
 
 import {
   Breadcrumb,
@@ -8,8 +8,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,9 +17,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 type HeaderProps = {
   breadcrumbs: { href: string; label: string }[];
@@ -34,7 +34,7 @@ export function Header({ breadcrumbs, activeBreadcrumb }: HeaderProps) {
         <BreadcrumbList>
           {breadcrumbs.map((item, index) => (
             <>
-              <BreadcrumbItem>
+              <BreadcrumbItem key={index}>
                 <BreadcrumbLink asChild>
                   <Link href={item.href}>{item.label}</Link>
                 </BreadcrumbLink>
@@ -47,12 +47,12 @@ export function Header({ breadcrumbs, activeBreadcrumb }: HeaderProps) {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="relative mr-auto flex-1 md:grow-0">
-        <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="relative ml-auto flex-1 md:grow-0">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
           placeholder="جستجو..."
-          className="w-full rounded-lg bg-secondary pr-8 md:w-[200px] lg:w-[320px]"
+          className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
         />
       </div>
       <DropdownMenu>
