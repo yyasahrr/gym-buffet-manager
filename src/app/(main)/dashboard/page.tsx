@@ -94,9 +94,9 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           <StatCard
             title="درآمد کل"
-            value={`${totalRevenue.toLocaleString('fa-IR')} تومان`}
+            value={`${(totalRevenue ?? 0).toLocaleString('fa-IR')} تومان`}
             icon={DollarSign}
-            description={`${totalSales.toLocaleString('fa-IR')} فروش`}
+            description={`${(totalSales ?? 0).toLocaleString('fa-IR')} فروش`}
           />
           <StatCard
             title="سود کل (نمایشی)"
@@ -106,7 +106,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="ارزش موجودی"
-            value={`${inventoryValue.toLocaleString('fa-IR')} تومان`}
+            value={`${(inventoryValue ?? 0).toLocaleString('fa-IR')} تومان`}
             icon={Package}
             description="ارزش کل محصولات و مواد اولیه"
           />

@@ -7,11 +7,6 @@ import { useAppData } from '@/lib/store';
 
 // Helper to get Jalali month names
 const JALALI_MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
-const getJalaliMonthName = (date: Date): string => {
-  const monthIndex = parseInt(formatJalali(date, 'M'), 10) - 1;
-  return JALALI_MONTHS[monthIndex];
-};
-
 
 export function OverviewChart() {
   const { orders } = useAppData();
@@ -21,13 +16,21 @@ export function OverviewChart() {
       
     if (orders) {
         orders.forEach(order => {
-            const date = new Date(order.createdAt);
-            const monthName = getJalaliMonthName(date);
-            
-            if (monthlySales[monthName]) {
-              monthlySales[monthName] += order.total;
-            } else {
-              monthlySales[monthName] = order.total;
+            try {
+              const date = new Date(order.createdAt);
+              // formatJalali might throw an error for an invalid date
+              const monthIndex = parseInt(formatJalali(date, 'M'), 10) - 1;
+              const monthName = JALALI_MONTHS[monthIndex];
+              
+              if (monthName) {
+                if (monthlySales[monthName]) {
+                  monthlySales[monthName] += order.total;
+                } else {
+                  monthlySales[monthName] = order.total;
+                }
+              }
+            } catch (e) {
+              console.error("Invalid date in order:", order.id, order.createdAt);
             }
         });
     }
@@ -73,7 +76,7 @@ export function OverviewChart() {
             cursor={{ fill: 'hsla(var(--muted), 0.5)' }}
             contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', direction: 'rtl' }}
             labelStyle={{ color: 'hsl(var(--foreground))' }}
-            formatter={(value) => [`${Number(value).toLocaleString('fa-IR')} تومان`, 'فروش']}
+            formatter={(value: number) => [`${(value ?? 0).toLocaleString('fa-IR')} تومان`, 'فروش']}
         />
         <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
       </BarChart>
