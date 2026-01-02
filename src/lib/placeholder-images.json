@@ -1,3 +1,100 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "protein_powder",
+      "description": "A tub of whey protein powder.",
+      "imageUrl": "https://images.unsplash.com/photo-1680265158261-5fd6ba5d9959?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwcm90ZWluJTIwcG93ZGVyfGVufDB8fHx8MTc2NzI1MjIwMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "protein powder"
+    },
+    {
+      "id": "creatine_powder",
+      "description": "A container of creatine monohydrate powder.",
+      "imageUrl": "https://images.unsplash.com/photo-1693996045463-6ea86d10a2e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjcmVhdGluZSUyMHBvd2RlcnxlbnwwfHx8fDE3NjczMzg2NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "creatine powder"
+    },
+    {
+      "id": "energy_drink",
+      "description": "A can of a generic energy drink.",
+      "imageUrl": "https://images.unsplash.com/photo-1612094485240-e6249b81c0cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZW5lcmd5JTIwZHJpbmt8ZW58MHx8fHwxNzY3Mjc3MzA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "energy drink"
+    },
+    {
+      "id": "protein_bar",
+      "description": "A wrapped protein bar.",
+      "imageUrl": "https://images.unsplash.com/photo-1704650312560-4414980bab95?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwcm90ZWluJTIwYmFyfGVufDB8fHx8MTc2NzMzODY1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "protein bar"
+    },
+    {
+      "id": "water_bottle",
+      "description": "A bottle of mineral water.",
+      "imageUrl": "https://images.unsplash.com/photo-1561041695-d2fadf9f318c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3YXRlciUyMGJvdHRsZXxlbnwwfHx8fDE3NjcyMjMwNDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "water bottle"
+    },
+    {
+      "id": "pre_workout",
+      "description": "A tub of pre-workout supplement.",
+      "imageUrl": "https://images.unsplash.com/photo-1610360277501-ea948686dc52?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwcmUlMjB3b3Jrb3V0fGVufDB8fHx8MTc2NzMzODY1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pre workout"
+    },
+    {
+      "id": "chicken_breast",
+      "description": "Raw chicken breasts.",
+      "imageUrl": "https://images.unsplash.com/photo-1633096013004-e2cb4023b560?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjaGlja2VuJTIwYnJlYXN0fGVufDB8fHx8MTc2NzI5NTI2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "chicken breast"
+    },
+    {
+      "id": "lettuce",
+      "description": "A head of romaine lettuce.",
+      "imageUrl": "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxyb21haW5lJTIwbGV0dHVjZXxlbnwwfHx8fDE3NjczMzg2NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "romaine lettuce"
+    },
+    {
+      "id": "quinoa",
+      "description": "A bowl of uncooked quinoa.",
+      "imageUrl": "https://images.unsplash.com/photo-1722882270502-4758cbd78661?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxxdWlub2ElMjBncmFpbnxlbnwwfHx8fDE3NjczMzg2NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "quinoa grain"
+    },
+    {
+      "id": "avocado",
+      "description": "A whole avocado and a halved one.",
+      "imageUrl": "https://images.unsplash.com/photo-1573566291259-fd494a326b60?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhdm9jYWRvJTIwZnJ1aXR8ZW58MHx8fHwxNzY3MzM4NjU0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "avocado fruit"
+    },
+    {
+      "id": "tomato",
+      "description": "Fresh red tomatoes.",
+      "imageUrl": "https://images.unsplash.com/photo-1700064165267-8fa68ef07167?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8dG9tYXRvJTIwZnJ1aXR8ZW58MHx8fHwxNzY3MzM4NjU0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tomato fruit"
+    },
+    {
+      "id": "bread",
+      "description": "A loaf of whole wheat bread.",
+      "imageUrl": "https://images.unsplash.com/photo-1709577612752-17464d42512b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3aGVhdCUyMGJyZWFkfGVufDB8fHx8MTc2NzMzODY1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wheat bread"
+    },
+    {
+      "id": "egg",
+      "description": "A carton of brown eggs.",
+      "imageUrl": "https://images.unsplash.com/photo-1506976785307-8732e854ad03?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxlZ2dzfGVufDB8fHx8MTc2NzI2OTUxMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "eggs"
+    },
+    {
+      "id": "chicken_salad",
+      "description": "A freshly made grilled chicken salad.",
+      "imageUrl": "https://images.unsplash.com/photo-1580013759032-c96505e24c1f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjaGlja2VuJTIwc2FsYWR8ZW58MHx8fHwxNzY3Mjk4MjY2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "chicken salad"
+    },
+    {
+      "id": "quinoa_bowl",
+      "description": "A healthy quinoa bowl with vegetables.",
+      "imageUrl": "https://images.unsplash.com/photo-1623428188495-89c064ee061a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxxdWlub2ElMjBib3dsfGVufDB8fHx8MTc2NzMzODY1NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "quinoa bowl"
+    },
+    {
+      "id": "avocado_toast",
+      "description": "Avocado toast with eggs on top.",
+      "imageUrl": "https://images.unsplash.com/photo-1687276287139-88f7333c8ca4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhdm9jYWRvJTIwdG9hc3R8ZW58MHx8fHwxNzY3Mjk1OTI4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "avocado toast"
+    }
+  ]
 }
