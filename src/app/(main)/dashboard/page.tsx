@@ -1,6 +1,6 @@
 'use client';
 
-import { DollarSign, Package, TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
+import { DollarSign, Package, TrendingUp, Trash2 } from 'lucide-react';
 import {
   Card,
   CardContent,

@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 import { Badge } from '@/components/ui/badge';
-import { Order, Purchase, CustomerTransaction, Customer } from '@/lib/types';
+import { Order } from '@/lib/types';
 import { format as formatJalali, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns-jalali';
 import { useState, useMemo, useEffect } from 'react';
 import { useAppData } from '@/lib/store';
@@ -128,11 +128,11 @@ export default function ReportsPage() {
         <CardContent className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">درآمد کل</p>
-                <p className="text-2xl font-bold">{salesTotal.toLocaleString('fa-IR')} تومان</p>
+                <p className="text-2xl font-bold">{(salesTotal || 0).toLocaleString('fa-IR')} تومان</p>
             </div>
              <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">تعداد سفارشات</p>
-                <p className="text-2xl font-bold">{filteredOrders.length.toLocaleString('fa-IR')}</p>
+                <p className="text-2xl font-bold">{(filteredOrders.length || 0).toLocaleString('fa-IR')}</p>
             </div>
         </CardContent>
       </Card>
@@ -183,7 +183,7 @@ export default function ReportsPage() {
         <CardHeader><CardTitle>خلاصه خرید</CardTitle></CardHeader>
         <CardContent>
             <p className="text-sm text-muted-foreground">مبلغ کل خرید</p>
-            <p className="text-2xl font-bold">{purchaseTotal.toLocaleString('fa-IR')} تومان</p>
+            <p className="text-2xl font-bold">{(purchaseTotal || 0).toLocaleString('fa-IR')} تومان</p>
         </CardContent>
       </Card>
       <Card>
@@ -229,11 +229,11 @@ export default function ReportsPage() {
             <CardContent className="grid grid-cols-2 gap-4">
                  <div className="p-4 bg-muted/50 rounded-lg">
                     <p className="text-sm text-muted-foreground">جمع واریزها (شارژ)</p>
-                    <p className="text-2xl font-bold text-green-600">+{totalCredit.toLocaleString('fa-IR')} تومان</p>
+                    <p className="text-2xl font-bold text-green-600">+{(totalCredit || 0).toLocaleString('fa-IR')} تومان</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                     <p className="text-sm text-muted-foreground">جمع برداشت‌ها (بدهی)</p>
-                    <p className="text-2xl font-bold text-red-600">-{totalDebit.toLocaleString('fa-IR')} تومان</p>
+                    <p className="text-2xl font-bold text-red-600">-{(totalDebit || 0).toLocaleString('fa-IR')} تومان</p>
                 </div>
             </CardContent>
         </Card>
@@ -314,7 +314,7 @@ export default function ReportsPage() {
                 <CardContent>
                    <div className="p-4 bg-muted/50 rounded-lg mb-4">
                         <p className="text-sm text-muted-foreground">مجموع کل اعتبارها</p>
-                        <p className="text-2xl font-bold text-green-600">{totalPositiveBalance.toLocaleString('fa-IR')} تومان</p>
+                        <p className="text-2xl font-bold text-green-600">{(totalPositiveBalance || 0).toLocaleString('fa-IR')} تومان</p>
                     </div>
                    {creditData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={300}>
@@ -339,7 +339,7 @@ export default function ReportsPage() {
                 <CardContent>
                     <div className="p-4 bg-muted/50 rounded-lg mb-4">
                         <p className="text-sm text-muted-foreground">مجموع کل بدهی‌ها</p>
-                        <p className="text-2xl font-bold text-red-600">{totalNegativeBalance.toLocaleString('fa-IR')} تومان</p>
+                        <p className="text-2xl font-bold text-red-600">{(totalNegativeBalance || 0).toLocaleString('fa-IR')} تومان</p>
                     </div>
                     {debitData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={300}>
@@ -412,7 +412,7 @@ export default function ReportsPage() {
                     <Separator />
                     <div className="flex justify-between font-bold text-lg">
                         <p>جمع کل</p>
-                        <p>{selectedOrder?.total.toLocaleString('fa-IR')} تومان</p>
+                        <p>{(selectedOrder?.total || 0).toLocaleString('fa-IR')} تومان</p>
                     </div>
                 </div>
             </DialogContent>
