@@ -43,6 +43,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
 
+const packagingTypes = [
+    "دانه‌ای",
+    "بسته ۳۰تایی",
+    "بسته‌بندی ۲۵۰ گرمی",
+    "بسته‌بندی ۵۰۰ گرمی",
+    "بسته‌بندی ۱ کیلویی",
+    "شیشه",
+    "قوطی",
+];
 
 export default function IngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -104,6 +113,12 @@ export default function IngredientsPage() {
         setNewIngredient({ name: '', variantName: '', stock: '', avgBuyPrice: '', unit: 'g' });
     };
 
+    const totalPurchasePrice = useMemo(() => {
+        const quantity = parseFloat(newIngredient.stock) || 0;
+        const pricePerUnit = parseFloat(newIngredient.avgBuyPrice) || 0;
+        return quantity * pricePerUnit;
+    }, [newIngredient.stock, newIngredient.avgBuyPrice]);
+
     return (
         <div className="flex flex-col h-full">
             <Header onSearch={setSearchQuery} breadcrumbs={[]} activeBreadcrumb="مواد اولیه" />
@@ -128,8 +143,17 @@ export default function IngredientsPage() {
                                     <Input id="name" value={newIngredient.name} onChange={(e) => setNewIngredient({...newIngredient, name: e.target.value})} className="col-span-3"/>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="variantName" className="text-right">نوع/بسته</Label>
-                                    <Input id="variantName" placeholder='مثال: بسته‌بندی ۱ کیلویی' value={newIngredient.variantName} onChange={(e) => setNewIngredient({...newIngredient, variantName: e.target.value})} className="col-span-3"/>
+                                    <Label htmlFor="variantName" className="text-right">نوع بسته</Label>
+                                    <Select value={newIngredient.variantName} onValueChange={(value) => setNewIngredient({...newIngredient, variantName: value})}>
+                                        <SelectTrigger className="col-span-3">
+                                            <SelectValue placeholder="انتخاب نوع بسته‌بندی" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {packagingTypes.map((type) => (
+                                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="unit" className="text-right">واحد</Label>
@@ -145,12 +169,18 @@ export default function IngredientsPage() {
                                     </Select>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="stock" className="text-right">موجودی</Label>
+                                    <Label htmlFor="stock" className="text-right">مقدار</Label>
                                     <Input id="stock" type="number" value={newIngredient.stock} onChange={(e) => setNewIngredient({...newIngredient, stock: e.target.value})} className="col-span-3"/>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="avgBuyPrice" className="text-right">قیمت خرید</Label>
+                                    <Label htmlFor="avgBuyPrice" className="text-right">قیمت خرید (هر واحد)</Label>
                                     <Input id="avgBuyPrice" type="number" value={newIngredient.avgBuyPrice} onChange={(e) => setNewIngredient({...newIngredient, avgBuyPrice: e.target.value})} className="col-span-3"/>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">قیمت کل خرید</Label>
+                                    <div className="col-span-3 font-bold">
+                                        {totalPurchasePrice.toLocaleString('fa-IR')} تومان
+                                    </div>
                                 </div>
                             </div>
                             <DialogFooter>
@@ -181,6 +211,9 @@ export default function IngredientsPage() {
                                 {isClient && filteredIngredients.map(ingredient => {
                                     const image = imageMap.get(ingredient.imageId);
                                     const displayName = `${ingredient.name} ${ingredient.variantName ? `(${ingredient.variantName})` : ''}`;
+                                    const stockToDisplay = ingredient.stock;
+                                    const unitLabel = unitLabels[ingredient.unit];
+                                    
                                     return (
                                         <TableRow key={ingredient.id}>
                                             <TableCell className="hidden sm:table-cell align-middle">
@@ -197,9 +230,9 @@ export default function IngredientsPage() {
                                             </TableCell>
                                             <TableCell className="font-medium align-middle">{displayName}</TableCell>
                                             <TableCell className="align-middle">
-                                                <Badge variant={ingredient.stock > 20 ? 'outline' : 'destructive'}>{ingredient.stock.toLocaleString('fa-IR')} {unitLabels[ingredient.unit]}</Badge>
+                                                <Badge variant={stockToDisplay > 20 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
                                             </TableCell>
-                                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان / {unitLabels[ingredient.unit]}</TableCell>
+                                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان / {unitLabel}</TableCell>
                                         </TableRow>
                                     )
                                 })}
