@@ -5,7 +5,6 @@ import {
   AvatarFallback,
   AvatarImage,
 } from '@/components/ui/avatar';
-import { Order } from '@/lib/types';
 import { useMemo } from 'react';
 import { useAppData } from '@/lib/store';
 

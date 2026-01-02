@@ -13,8 +13,7 @@ import { Header } from '@/components/header';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { OverviewChart } from '@/components/dashboard/overview-chart';
 import { RecentSales } from '@/components/dashboard/recent-sales';
-import { useEffect, useState, useMemo } from 'react';
-import type { Order, Product, Ingredient } from '@/lib/types';
+import { useMemo } from 'react';
 import { BestSellers } from '@/components/dashboard/best-sellers';
 import { useAppData } from '@/lib/store';
 
@@ -23,17 +22,23 @@ export default function DashboardPage() {
     const { orders, products, ingredients } = useAppData();
     
     const totalRevenue = useMemo(() => {
+        if (!orders) return 0;
         return orders.reduce((sum, order) => sum + order.total, 0);
     }, [orders]);
     
     const totalSales = useMemo(() => {
+        if (!orders) return 0;
         return orders.length;
     }, [orders]);
 
     const inventoryValue = useMemo(() => {
         let currentInventoryValue = 0;
-        currentInventoryValue += products.reduce((sum, product) => sum + (product.stock * product.avgBuyPrice), 0);
-        currentInventoryValue += ingredients.reduce((sum, ingredient) => sum + (ingredient.stock * ingredient.avgBuyPrice), 0);
+        if (products) {
+            currentInventoryValue += products.reduce((sum, product) => sum + (product.stock * product.avgBuyPrice), 0);
+        }
+        if (ingredients) {
+            currentInventoryValue += ingredients.reduce((sum, ingredient) => sum + (ingredient.stock * ingredient.avgBuyPrice), 0);
+        }
         return currentInventoryValue;
     }, [products, ingredients]);
     
@@ -71,7 +76,7 @@ export default function DashboardPage() {
         <div className="mt-8 grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader>
-              <CardTitle>نمای کلی</CardTitle>
+              <CardTitle>نمای کلی فروش</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
               <OverviewChart />

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import type { Order, OrderItem, Product, Food } from '@/lib/types';
+import { useMemo } from 'react';
+import type { OrderItem } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -53,13 +53,13 @@ export function BestSellers() {
       .slice(0, 5); // Top 5
   }, [orders]);
 
-  if (bestSellers.length === 0) {
+  if (!orders || orders.length === 0) {
     return (
         <Card>
         <CardHeader>
           <CardTitle>محصولات پرفروش</CardTitle>
           <CardDescription>
-            پرفروش‌ترین محصولات این ماه.
+            پرفروش‌ترین محصولات در تمام سفارشات.
           </CardDescription>
         </CardHeader>
         <CardContent>
