@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import { Plus, Minus, Trash2, ShoppingCart, Loader2, User } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingCart, Loader2, User, PlusCircle } from 'lucide-react';
 import type { Order, OrderItem, Product, Food, Customer, Ingredient, CustomerTransaction } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { canFulfillOrderItem, fulfillOrder, calculateOrderItemCost } from '@/lib/inventory';
@@ -24,6 +24,8 @@ import { Label } from '../ui/label';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 
@@ -38,6 +40,9 @@ export default function OrderClient() {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState('');
+
 
   const activeCustomers = useMemo(() => customers.filter(c => c.status === 'active'), [customers]);
 
@@ -151,6 +156,28 @@ export default function OrderClient() {
     }
     return selectedCustomerBalance - cartTotal;
   }, [selectedCustomer, selectedCustomerBalance, cartTotal, paymentMethod]);
+
+  const handleQuickAddCustomer = () => {
+    if (!newCustomerName) {
+        toast({ variant: 'destructive', title: 'خطا', description: 'لطفاً نام مشتری را پر کنید.' });
+        return;
+    }
+    const newCustomer: Customer = {
+        id: `cust-${Date.now()}`,
+        name: newCustomerName,
+        status: 'active',
+    };
+    const updatedCustomers = [...customers, newCustomer];
+    dataStore.saveData({ customers: updatedCustomers });
+    toast({ title: 'موفقیت‌آمیز', description: `مشتری "${newCustomerName}" با موفقیت اضافه شد.` });
+
+    // Select the new customer immediately
+    setSelectedCustomerId(newCustomer.id);
+    
+    // Close and reset the dialog
+    setNewCustomerName('');
+    setIsAddCustomerOpen(false);
+  }
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -333,25 +360,55 @@ export default function OrderClient() {
           </CardTitle>
           <div className="pt-4 space-y-2">
             <Label htmlFor="customer-select">مشتری</Label>
-            <Select
-              value={selectedCustomerId}
-              onValueChange={setSelectedCustomerId}
-              disabled={isCheckingOut}
-            >
-              <SelectTrigger id="customer-select" className='w-full'>
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="یک مشتری انتخاب کنید" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {activeCustomers.map(customer => (
-                  <SelectItem key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className='flex items-center gap-2'>
+                <Select
+                    value={selectedCustomerId}
+                    onValueChange={setSelectedCustomerId}
+                    disabled={isCheckingOut}
+                >
+                    <SelectTrigger id="customer-select" className='flex-1'>
+                        <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <SelectValue placeholder="یک مشتری انتخاب کنید" />
+                        </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                        {activeCustomers.map(customer => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Dialog open={isAddCustomerOpen} onOpenChange={setIsAddCustomerOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="icon">
+                            <PlusCircle className="h-4 w-4" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>افزودن مشتری جدید</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="name" className="text-right">نام</Label>
+                                <Input
+                                    id="name"
+                                    value={newCustomerName}
+                                    onChange={(e) => setNewCustomerName(e.target.value)}
+                                    className="col-span-3"
+                                    placeholder="مثال: علی رضایی"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="secondary" onClick={() => setIsAddCustomerOpen(false)}>لغو</Button>
+                            <Button type="submit" onClick={handleQuickAddCustomer}>ذخیره</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
