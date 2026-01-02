@@ -168,7 +168,7 @@ export default function RecipesPage() {
                                                                 setSelectedIngredients(current);
                                                             }}
                                                         />
-                                                        <Label htmlFor={`ing-${ing.id}`}>{ing.name}</Label>
+                                                        <Label htmlFor={`ing-${ing.id}`}>{ing.name} {ing.variantName ? `(${ing.variantName})` : ''}</Label>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Input
@@ -183,7 +183,7 @@ export default function RecipesPage() {
                                                             })}
                                                         />
                                                         <span className="text-sm text-muted-foreground w-12 text-right">
-                                                            {unitLabels[ing.unit] || ing.unit}
+                                                            {unitLabels[ing.unit]}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -226,7 +226,7 @@ export default function RecipesPage() {
                             <ul className="list-disc list-inside text-sm text-muted-foreground my-2">
                                 {food.recipe.map(item => {
                                     const ingredient = ingredientMap.get(item.ingredientId);
-                                    return <li key={item.ingredientId}>{ingredient?.name} ({item.quantity} {ingredient ? unitLabels[ingredient.unit] : ''})</li>
+                                    return <li key={item.ingredientId}>{ingredient?.name} {ingredient?.variantName ? `(${ingredient.variantName})` : ''} ({item.quantity} {ingredient ? unitLabels[ingredient.unit] : ''})</li>
                                 })}
                             </ul>
                             <Separator className="my-4" />
