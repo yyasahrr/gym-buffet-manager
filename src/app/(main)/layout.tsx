@@ -32,10 +32,8 @@ export default function MainLayout({
           {/* Footer content can go here */}
         </SidebarFooter>
       </Sidebar>
-      <div className='flex-1'>
-        <SidebarInset>
-            {children}
-        </SidebarInset>
+      <div className="flex flex-col flex-1">
+        <SidebarInset>{children}</SidebarInset>
       </div>
     </SidebarProvider>
   );

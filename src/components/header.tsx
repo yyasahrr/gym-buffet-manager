@@ -30,7 +30,7 @@ export function Header({ breadcrumbs, activeBreadcrumb }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <SidebarTrigger className="sm:hidden" />
-      <Breadcrumb className="hidden flex-1 md:flex">
+      <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
           {breadcrumbs.map((item, index) => (
             <>
@@ -47,7 +47,7 @@ export function Header({ breadcrumbs, activeBreadcrumb }: HeaderProps) {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="relative md:grow-0">
+      <div className="relative ml-auto md:grow-0">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
