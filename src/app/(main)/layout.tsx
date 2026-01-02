@@ -17,7 +17,7 @@ export default function MainLayout({
 }) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-background">
         <Sidebar className="border-r">
           <SidebarHeader>
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
