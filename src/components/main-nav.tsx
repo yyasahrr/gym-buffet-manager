@@ -37,13 +37,14 @@ export function MainNav() {
         return (
           <SidebarMenuItem key={link.href}>
             <SidebarMenuButton
-              as={Link}
-              href={link.href}
+              asChild
               isActive={isActive}
               tooltip={link.label}
             >
-              <link.icon />
-              <span>{link.label}</span>
+              <Link href={link.href}>
+                <link.icon />
+                <span>{link.label}</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
