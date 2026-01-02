@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { products as initialProducts, Product } from '@/lib/data';
 import { Header } from '@/components/header';
@@ -35,14 +35,30 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 const PRODUCTS_STORAGE_KEY = 'gym-canteen-products';
+const ORDERS_STORAGE_KEY = 'gym-canteen-orders'; // Needed to check usage history
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
@@ -51,6 +67,8 @@ export default function ProductsPage() {
     imageId: 'protein_powder',
   });
   const { toast } = useToast();
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('active');
 
   useEffect(() => {
     const storedProducts = localStorage.getItem(PRODUCTS_STORAGE_KEY);
@@ -60,13 +78,18 @@ export default function ProductsPage() {
       setProducts(initialProducts);
       localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(initialProducts));
     }
+    const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
+    if(storedOrders) {
+        setAllOrders(JSON.parse(storedOrders));
+    }
   }, []);
 
   const filteredProducts = useMemo(() => {
     return products.filter(product =>
+      product.status === activeTab &&
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [products, searchQuery]);
+  }, [products, searchQuery, activeTab]);
   
   const handleAddProduct = () => {
     const { name, sellPrice, imageId } = newProduct;
@@ -82,10 +105,11 @@ export default function ProductsPage() {
     const newProductData: Product = {
       id: `prod-${Date.now()}`,
       name,
-      stock: 0, // Initial stock is always 0
-      avgBuyPrice: 0, // Initial avgBuyPrice is always 0
+      stock: 0, 
+      avgBuyPrice: 0,
       sellPrice: parseInt(sellPrice, 10),
       imageId,
+      status: 'active',
     };
 
     const updatedProducts = [...products, newProductData];
@@ -100,6 +124,162 @@ export default function ProductsPage() {
     setIsDialogOpen(false);
     setNewProduct({ name: '', sellPrice: '', imageId: 'protein_powder' });
   };
+  
+  const handleArchiveProduct = (productId: string) => {
+    const updatedProducts = products.map(p => p.id === productId ? { ...p, status: 'archived' } : p);
+    setProducts(updatedProducts);
+    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updatedProducts));
+    toast({ title: "محصول بایگانی شد" });
+    setOpenMenuId(null);
+  };
+  
+  const handleRestoreProduct = (productId: string) => {
+    const updatedProducts = products.map(p => p.id === productId ? { ...p, status: 'active' } : p);
+    setProducts(updatedProducts);
+    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updatedProducts));
+    toast({ title: "محصول بازیابی شد" });
+    setOpenMenuId(null);
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if(!product) return;
+
+    const hasUsageHistory = allOrders.some((order: any) => order.items.some((item: any) => item.item.id === productId));
+
+    if(product.stock > 0 || hasUsageHistory) {
+      toast({
+        variant: "destructive",
+        title: "حذف امکان‌پذیر نیست",
+        description: "این محصول دارای موجودی یا سابقه فروش است. ابتدا آن را بایگانی کنید.",
+      });
+    } else {
+      const updatedProducts = products.filter(p => p.id !== productId);
+      setProducts(updatedProducts);
+      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updatedProducts));
+      toast({ title: "محصول برای همیشه حذف شد"});
+    }
+    setOpenMenuId(null);
+  }
+
+  const renderTable = (productList: Product[]) => (
+     <Card>
+        <CardHeader>
+            <CardTitle>{activeTab === 'active' ? 'محصولات فعال' : 'محصولات بایگانی شده'}</CardTitle>
+            <CardDescription>
+                {activeTab === 'active' ? 'محصولات خود را مدیریت کرده و سطح موجودی آنها را مشاهده کنید.' : 'این محصولات در صفحه سفارشات نمایش داده نمی‌شوند.'}
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead className="hidden w-[100px] sm:table-cell">
+                        <span className="sr-only">تصویر</span>
+                    </TableHead>
+                    <TableHead>نام</TableHead>
+                    <TableHead>موجودی</TableHead>
+                    <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
+                    <TableHead>قیمت فروش</TableHead>
+                    <TableHead>
+                        <span className="sr-only">عملیات</span>
+                    </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {productList.map(product => {
+                        const image = imageMap.get(product.imageId);
+                        return (
+                            <TableRow key={product.id}>
+                                <TableCell className="hidden sm:table-cell align-middle">
+                                    {image && (
+                                        <Image
+                                            alt={product.name}
+                                            className="aspect-square rounded-md object-cover"
+                                            height="64"
+                                            src={image.imageUrl}
+                                            width="64"
+                                            data-ai-hint={image.imageHint}
+                                        />
+                                    )}
+                                </TableCell>
+                                <TableCell className="font-medium align-middle">{product.name}</TableCell>
+                                <TableCell className="align-middle">
+                                    <Badge variant={product.stock > 0 ? 'outline' : 'destructive'}>{product.stock}</Badge>
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell align-middle">{product.avgBuyPrice > 0 ? product.avgBuyPrice.toLocaleString('fa-IR') + ' تومان' : '-'}</TableCell>
+                                <TableCell className="align-middle">{product.sellPrice.toLocaleString('fa-IR')} تومان</TableCell>
+                                <TableCell className="text-left">
+                                     <DropdownMenu open={openMenuId === product.id} onOpenChange={(isOpen) => setOpenMenuId(isOpen ? product.id : null)}>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <span className="sr-only">باز کردن منو</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                        {product.status === 'active' ? (
+                                            <>
+                                                <DropdownMenuItem disabled>
+                                                    <Pencil className="ml-2 h-4 w-4" />
+                                                    ویرایش (به زودی)
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleArchiveProduct(product.id)}>
+                                                    <Archive className="ml-2 h-4 w-4" />
+                                                    بایگانی
+                                                </DropdownMenuItem>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <DropdownMenuItem onClick={() => handleRestoreProduct(product.id)}>
+                                                    <ArchiveRestore className="ml-2 h-4 w-4" />
+                                                    بازیابی
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                                            <Trash2 className="ml-2 h-4 w-4" />
+                                                            <span>حذف دائمی</span>
+                                                        </DropdownMenuItem>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>آیا مطمئن هستید؟</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                این عمل غیرقابل بازگشت است. فقط در صورتی ادامه دهید که محصول سابقه فروش نداشته و موجودی آن صفر باشد.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>لغو</AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                                className="bg-destructive hover:bg-destructive/90"
+                                                                onClick={() => handleDeleteProduct(product.id)}
+                                                            >
+                                                                تایید و حذف دائمی
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </>
+                                        )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        )
+                    })}
+                </TableBody>
+            </Table>
+        </CardContent>
+        <CardFooter>
+            <div className="text-xs text-muted-foreground">
+            نمایش <strong>{filteredProducts.length}</strong> از <strong>{products.filter(p=>p.status === activeTab).length}</strong> محصول
+            </div>
+        </CardFooter>
+    </Card>
+  );
+
 
   return (
     <div className="flex flex-col h-full">
@@ -136,61 +316,18 @@ export default function ProductsPage() {
                     </DialogContent>
                 </Dialog>
             </PageHeader>
-            <Card>
-                <CardHeader>
-                    <CardTitle>موجودی محصولات</CardTitle>
-                    <CardDescription>محصولات خود را مدیریت کرده و سطح موجودی آنها را مشاهده کنید.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead className="hidden w-[100px] sm:table-cell">
-                                <span className="sr-only">تصویر</span>
-                            </TableHead>
-                            <TableHead>نام</TableHead>
-                            <TableHead>موجودی</TableHead>
-                            <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
-                            <TableHead>قیمت فروش</TableHead>
-                            <TableHead className="hidden md:table-cell">تاریخ ایجاد</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredProducts.map(product => {
-                                const image = imageMap.get(product.imageId);
-                                return (
-                                    <TableRow key={product.id}>
-                                        <TableCell className="hidden sm:table-cell align-middle">
-                                            {image && (
-                                                <Image
-                                                    alt={product.name}
-                                                    className="aspect-square rounded-md object-cover"
-                                                    height="64"
-                                                    src={image.imageUrl}
-                                                    width="64"
-                                                    data-ai-hint={image.imageHint}
-                                                />
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="font-medium align-middle">{product.name}</TableCell>
-                                        <TableCell className="align-middle">
-                                            <Badge variant={product.stock > 0 ? 'outline' : 'destructive'}>{product.stock}</Badge>
-                                        </TableCell>
-                                        <TableCell className="hidden md:table-cell align-middle">{product.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
-                                        <TableCell className="align-middle">{product.sellPrice.toLocaleString('fa-IR')} تومان</TableCell>
-                                        <TableCell className="hidden md:table-cell align-middle">{new Date().toLocaleDateString('fa-IR')}</TableCell>
-                                    </TableRow>
-                                )
-                            })}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-                <CardFooter>
-                    <div className="text-xs text-muted-foreground">
-                    نمایش <strong>{filteredProducts.length}</strong> از <strong>{products.length}</strong> محصول
-                    </div>
-                </CardFooter>
-            </Card>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="active">فعال</TabsTrigger>
+                    <TabsTrigger value="archived">بایگانی</TabsTrigger>
+                </TabsList>
+                <TabsContent value="active">
+                    {renderTable(filteredProducts)}
+                </TabsContent>
+                <TabsContent value="archived">
+                    {renderTable(filteredProducts)}
+                </TabsContent>
+            </Tabs>
         </main>
     </div>
   );

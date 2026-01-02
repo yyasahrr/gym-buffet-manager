@@ -80,6 +80,7 @@ export default function RecipesPage() {
 
     const filteredFoods = useMemo(() => {
         return foods.filter(food =>
+            food.status === 'active' &&
             food.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [foods, searchQuery]);
@@ -105,6 +106,7 @@ export default function RecipesPage() {
             sellPrice: parseInt(newRecipePrice, 10),
             recipe: recipeItems,
             imageId: 'avocado_toast', // Default image
+            status: 'active',
         };
 
         const updatedFoods = [...foods, newFood];

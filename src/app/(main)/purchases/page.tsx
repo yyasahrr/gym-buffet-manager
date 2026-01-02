@@ -167,7 +167,7 @@ export default function PurchasesPage() {
       <Header breadcrumbs={[]} activeBreadcrumb="خرید" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="ثبت خرید مواد اولیه">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) resetForm(); setIsDialogOpen(isOpen); }}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="ml-2 h-4 w-4" /> ثبت خرید

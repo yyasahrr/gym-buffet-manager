@@ -222,8 +222,11 @@ export default function OrderClient() {
     }, 1500);
   }
 
-  const filteredFoods = useMemo(() => foods.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())), [foods, searchQuery]);
-  const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())), [products, searchQuery]);
+  const activeFoods = useMemo(() => foods.filter(f => f.status === 'active'), [foods]);
+  const activeProducts = useMemo(() => products.filter(p => p.status === 'active'), [products]);
+
+  const filteredFoods = useMemo(() => activeFoods.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())), [activeFoods, searchQuery]);
+  const filteredProducts = useMemo(() => activeProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())), [activeProducts, searchQuery]);
 
   const ItemGrid = ({ items }: { items: (Product | Food)[] }) => {
     // We create a temporary inventory map for quick lookups inside this render function.
@@ -425,5 +428,3 @@ export default function OrderClient() {
     </div>
   );
 }
-
-    

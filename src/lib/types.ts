@@ -5,6 +5,7 @@ export type Product = {
   avgBuyPrice: number;
   sellPrice: number;
   imageId: string;
+  status: 'active' | 'archived';
 };
 
 export type Unit = 'g' | 'kg' | 'ml' | 'l' | 'count';
@@ -39,6 +40,7 @@ export type Food = {
   recipe: RecipeItem[];
   sellPrice: number;
   imageId: string;
+  status: 'active' | 'archived';
 };
 
 export type OrderItem = {
