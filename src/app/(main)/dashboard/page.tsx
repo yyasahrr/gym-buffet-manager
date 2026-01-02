@@ -1,6 +1,6 @@
 'use client';
 
-import { DollarSign, Package, Users, UtensilsCrossed } from 'lucide-react';
+import { DollarSign, Package, Users, UtensilsCrossed, Trash2 } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function DashboardPage() {
-    const { orders, products, ingredients } = useAppData();
+    const { orders, products, ingredients, waste } = useAppData();
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -47,6 +47,11 @@ export default function DashboardPage() {
         }
         return currentInventoryValue;
     }, [products, ingredients]);
+
+    const wasteValue = useMemo(() => {
+        if (!waste) return 0;
+        return waste.reduce((sum, record) => sum + record.cost, 0);
+    }, [waste]);
     
 
     if (!isClient) {
@@ -111,10 +116,10 @@ export default function DashboardPage() {
             description="ارزش کل محصولات و مواد اولیه"
           />
           <StatCard
-            title="ارزش ضایعات (نمایشی)"
-            value="۸۴۲,۵۰۰ تومان"
-            icon={UtensilsCrossed}
-            description="در حال حاضر ثابت است"
+            title="ارزش ضایعات"
+            value={`${(wasteValue ?? 0).toLocaleString('fa-IR')} تومان`}
+            icon={Trash2}
+            description={`${(waste?.length ?? 0).toLocaleString('fa-IR')} رکورد ضایعات`}
           />
         </div>
         <div className="mt-8 grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">

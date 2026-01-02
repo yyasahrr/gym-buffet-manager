@@ -12,6 +12,7 @@ import {
   Users,
   Receipt,
   Truck,
+  Trash2,
 } from 'lucide-react';
 
 import {
@@ -27,6 +28,7 @@ const links = [
   { href: '/ingredients', label: 'مواد اولیه', icon: Leaf },
   { href: '/purchases', label: 'خرید', icon: Truck },
   { href: '/recipes', label: 'دستور پخت‌ها', icon: ChefHat },
+  { href: '/waste', label: 'ضایعات', icon: Trash2 },
   { href: '/reports', label: 'گزارشات', icon: LineChart },
   { href: '/customers', label: 'مشتریان', icon: Users },
   { href: '/expenses', label: 'هزینه‌ها', icon: Receipt },
@@ -38,7 +40,7 @@ export function MainNav() {
   return (
     <SidebarMenu>
       {links.map((link) => {
-        const isActive = pathname === link.href;
+        const isActive = pathname.startsWith(link.href) && (link.href !== '/dashboard' || pathname === '/dashboard');
         return (
           <SidebarMenuItem key={link.href}>
             <Link href={link.href}>

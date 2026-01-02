@@ -108,6 +108,18 @@ export type Purchase = {
     status: 'active' | 'archived';
 };
 
+export type Waste = {
+    id: string;
+    date: string;
+    itemType: 'product' | 'ingredient';
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    unit: string;
+    cost: number; // quantity * avgBuyPrice at time of waste
+    reason: string;
+};
+
 
 // Represents the entire state of the application
 export type AppData = {
@@ -119,4 +131,5 @@ export type AppData = {
   orders: Order[];
   purchases: Purchase[];
   manualExpenses: Expense[];
+  waste: Waste[];
 };

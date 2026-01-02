@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppData, Product, Ingredient, Food, Customer, CustomerTransaction, Order, Purchase, Expense } from './types';
+import type { AppData, Product, Ingredient, Food, Customer, CustomerTransaction, Order, Purchase, Expense, Waste } from './types';
 import { 
     products as initialProducts, 
     ingredients as initialIngredients, 
@@ -11,7 +11,7 @@ import {
     expenses as initialExpenses 
 } from './data';
 
-const STORE_VERSION = '1.2'; // Version for the single-object store
+const STORE_VERSION = '1.3'; // Version for the single-object store with waste
 const VERSION_KEY = 'gym-canteen-version';
 const DATA_KEY = 'gym-canteen-app-data';
 
@@ -24,6 +24,7 @@ const INITIAL_DATA: AppData = {
   orders: initialOrders,
   purchases: initialPurchases,
   manualExpenses: initialExpenses,
+  waste: [],
 };
 
 // --- Data Normalization ---
@@ -83,6 +84,19 @@ function normalizeData(data: any): AppData {
     })).filter((p: Purchase | null) => p);
 
     normalized.manualExpenses = (data.manualExpenses || []).filter((e: Expense | null) => e);
+    
+    normalized.waste = (data.waste || []).map((w: Partial<Waste>): Waste => ({
+        id: w.id || `waste-${Date.now()}`,
+        date: w.date || new Date().toISOString(),
+        itemType: w.itemType || 'product',
+        itemId: w.itemId || '',
+        itemName: w.itemName || 'کالای نامشخص',
+        quantity: w.quantity || 0,
+        unit: w.unit || 'عدد',
+        cost: w.cost || 0,
+        reason: w.reason || '',
+    })).filter((w: Waste | null) => w && w.itemId && w.quantity > 0);
+
 
     return normalized;
 }
