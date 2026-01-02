@@ -199,7 +199,10 @@ export default function PurchasesPage() {
                     </TabsList>
                     <TabsContent value="direct" className="space-y-2 pt-2">
                         <Label htmlFor="quantity">
-                            مقدار {selectedIngredientForDialog ? `(${unitLabels[selectedIngredientForDialog.unit]})` : ''}
+                            {selectedIngredientForDialog
+                                ? `مقدار (${unitLabels[selectedIngredientForDialog.unit]})`
+                                : 'مقدار'
+                            }
                         </Label>
                         <Input
                             id="quantity"
@@ -218,7 +221,10 @@ export default function PurchasesPage() {
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="packageSize">
-                                    مقدار در هر بسته {selectedIngredientForDialog ? `(${unitLabels[selectedIngredientForDialog.unit]})` : ''}
+                                    {selectedIngredientForDialog
+                                        ? `مقدار در هر بسته (${unitLabels[selectedIngredientForDialog.unit]})`
+                                        : 'مقدار در هر بسته'
+                                    }
                                  </Label>
                                 <Input id="packageSize" type="number" value={packageSize} onChange={e => setPackageSize(e.target.value)} placeholder="مثال: 5"/>
                             </div>
