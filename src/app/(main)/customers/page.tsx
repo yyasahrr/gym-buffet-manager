@@ -43,7 +43,6 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
-  const [newCustomerCredit, setNewCustomerCredit] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
   const [isChargeDialogOpen, setIsChargeDialogOpen] = useState(false);
@@ -69,11 +68,11 @@ export default function CustomersPage() {
   }, [customers, searchQuery]);
 
   const handleAddCustomer = () => {
-    if (!newCustomerName || !newCustomerCredit) {
+    if (!newCustomerName) {
       toast({
         variant: "destructive",
         title: "خطا",
-        description: "لطفاً تمام فیلدها را پر کنید.",
+        description: "لطفاً نام مشتری را پر کنید.",
       });
       return;
     }
@@ -82,7 +81,6 @@ export default function CustomersPage() {
       id: `cust-${Date.now()}`,
       name: newCustomerName,
       balance: 0,
-      creditLimit: parseInt(newCustomerCredit, 10),
     };
 
     const updatedCustomers = [...customers, newCustomer];
@@ -95,7 +93,6 @@ export default function CustomersPage() {
     });
 
     setNewCustomerName('');
-    setNewCustomerCredit('');
     setIsAddDialogOpen(false);
   };
   
@@ -166,19 +163,6 @@ export default function CustomersPage() {
                     placeholder="مثال: علی رضایی"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="credit" className="text-right">
-                    سقف اعتبار
-                  </Label>
-                  <Input
-                    id="credit"
-                    type="number"
-                    value={newCustomerCredit}
-                    onChange={(e) => setNewCustomerCredit(e.target.value)}
-                    className="col-span-3"
-                    placeholder="مثال: 1000000"
-                  />
-                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="secondary" onClick={() => setIsAddDialogOpen(false)}>
@@ -205,7 +189,6 @@ export default function CustomersPage() {
                   </TableHead>
                   <TableHead>نام</TableHead>
                   <TableHead>وضعیت حساب (تومان)</TableHead>
-                  <TableHead>سقف اعتبار (تومان)</TableHead>
                   <TableHead>
                     <span className="sr-only">عملیات</span>
                   </TableHead>
@@ -228,9 +211,6 @@ export default function CustomersPage() {
                       {customer.balance < 0 
                         ? `${Math.abs(customer.balance).toLocaleString('fa-IR')} بدهکار` 
                         : `${customer.balance.toLocaleString('fa-IR')} اعتبار`}
-                    </TableCell>
-                    <TableCell className="align-middle">
-                      {customer.creditLimit.toLocaleString('fa-IR')}
                     </TableCell>
                     <TableCell className="align-middle text-left">
                        {customer.name !== 'مشتری حضوری' && (

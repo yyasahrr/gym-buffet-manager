@@ -60,5 +60,4 @@ export type Customer = {
   id: string;
   name: string;
   balance: number; // Positive is credit, negative is debt
-  creditLimit: number;
 };
