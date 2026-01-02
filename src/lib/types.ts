@@ -81,4 +81,8 @@ export type PurchaseItem = {
 
 export type Purchase = {
     id: string;
-    date
+    date: string;
+    items: PurchaseItem[];
+    transportCost: number;
+    note: string;
+};
