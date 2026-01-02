@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Wallet } from 'lucide-react';
 import { customers as initialCustomers, Customer } from '@/lib/data';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
@@ -23,7 +23,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -45,8 +44,13 @@ export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerCredit, setNewCustomerCredit] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
+  const [isChargeDialogOpen, setIsChargeDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [chargeAmount, setChargeAmount] = useState('');
+  
   const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     const storedCustomers = localStorage.getItem(CUSTOMERS_STORAGE_KEY);
@@ -92,15 +96,51 @@ export default function CustomersPage() {
 
     setNewCustomerName('');
     setNewCustomerCredit('');
-    setIsDialogOpen(false);
+    setIsAddDialogOpen(false);
   };
+  
+  const openChargeDialog = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setChargeAmount('');
+    setIsChargeDialogOpen(true);
+  };
+
+  const handleChargeCredit = () => {
+    if (!selectedCustomer || !chargeAmount || parseInt(chargeAmount) <= 0) {
+      toast({
+        variant: "destructive",
+        title: "خطا",
+        description: "لطفاً مبلغ معتبری را وارد کنید.",
+      });
+      return;
+    }
+    
+    const amount = parseInt(chargeAmount, 10);
+    const updatedCustomers = customers.map(c => 
+      c.id === selectedCustomer.id 
+        ? { ...c, balance: c.balance + amount }
+        : c
+    );
+    
+    setCustomers(updatedCustomers);
+    localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(updatedCustomers));
+    
+    toast({
+      title: "موفقیت‌آمیز",
+      description: `حساب ${selectedCustomer.name} به مبلغ ${amount.toLocaleString('fa-IR')} تومان شارژ شد.`,
+    });
+    
+    setIsChargeDialogOpen(false);
+    setSelectedCustomer(null);
+  };
+
 
   return (
     <div className="flex flex-col h-full">
       <Header onSearch={setSearchQuery} breadcrumbs={[]} activeBreadcrumb="مشتریان" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="مشتریان">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="ml-2 h-4 w-4" /> افزودن مشتری
@@ -141,7 +181,7 @@ export default function CustomersPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="secondary" onClick={() => setIsAddDialogOpen(false)}>
                     لغو
                 </Button>
                 <Button type="submit" onClick={handleAddCustomer}>ذخیره مشتری</Button>
@@ -166,6 +206,9 @@ export default function CustomersPage() {
                   <TableHead>نام</TableHead>
                   <TableHead>وضعیت حساب (تومان)</TableHead>
                   <TableHead>سقف اعتبار (تومان)</TableHead>
+                  <TableHead>
+                    <span className="sr-only">عملیات</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -189,6 +232,14 @@ export default function CustomersPage() {
                     <TableCell className="align-middle">
                       {customer.creditLimit.toLocaleString('fa-IR')}
                     </TableCell>
+                    <TableCell className="align-middle text-left">
+                       {customer.name !== 'مشتری حضوری' && (
+                        <Button variant="outline" size="sm" onClick={() => openChargeDialog(customer)}>
+                            <Wallet className="ml-2 h-4 w-4" />
+                            شارژ حساب
+                        </Button>
+                       )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -200,6 +251,52 @@ export default function CustomersPage() {
             </div>
           </CardFooter>
         </Card>
+
+        {/* Charge Credit Dialog */}
+        <Dialog open={isChargeDialogOpen} onOpenChange={setIsChargeDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>شارژ حساب مشتری</DialogTitle>
+                    <DialogDescription>
+                        مبلغ مورد نظر برای افزایش اعتبار {selectedCustomer?.name} را وارد کنید.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="charge-amount" className="text-right">
+                            مبلغ شارژ (تومان)
+                        </Label>
+                        <Input
+                            id="charge-amount"
+                            type="number"
+                            value={chargeAmount}
+                            onChange={(e) => setChargeAmount(e.target.value)}
+                            className="col-span-3"
+                            placeholder="مثال: 500000"
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">موجودی فعلی</Label>
+                        <div className={cn("col-span-3 font-semibold", selectedCustomer && selectedCustomer.balance < 0 ? 'text-destructive' : 'text-primary')}>
+                          {selectedCustomer?.balance.toLocaleString('fa-IR')} تومان
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">موجودی جدید</Label>
+                        <div className="col-span-3 font-bold text-lg">
+                          {((selectedCustomer?.balance || 0) + (parseInt(chargeAmount) || 0)).toLocaleString('fa-IR')} تومان
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="secondary" onClick={() => setIsChargeDialogOpen(false)}>
+                        لغو
+                    </Button>
+                    <Button type="submit" onClick={handleChargeCredit}>تایید و شارژ</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
       </main>
     </div>
   );
