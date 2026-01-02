@@ -232,7 +232,9 @@ export default function CustomersPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle><Skeleton className="h-6 w-48" /></CardTitle>
-                        <CardDescription><Skeleton className="h-4 w-64" /></CardDescription>
+                        <div className="text-sm text-muted-foreground">
+                            <Skeleton className="h-4 w-64" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                        <Table>
