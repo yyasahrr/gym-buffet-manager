@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import { PlusCircle } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { ingredients as initialIngredients, Ingredient, Unit, unitLabels } from '@/lib/data';
+import { ingredients as initialIngredients } from '@/lib/data';
+import { type Ingredient, type Unit, unitLabels } from '@/lib/types';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
