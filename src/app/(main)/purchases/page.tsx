@@ -307,12 +307,12 @@ export default function PurchasesPage() {
               <TableBody>
                 {purchases.length > 0 ? (
                   [...purchases].reverse().map(pur => {
-                    const totalValue = (pur.items || []).reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0) + pur.transportCost;
+                    const totalValue = (pur.items || []).reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0) + (pur.transportCost || 0);
                     return (
                         <TableRow key={pur.id}>
                             <TableCell>{formatJalali(new Date(pur.date), 'yyyy/MM/dd')}</TableCell>
                             <TableCell>{(pur.items || []).map(i => i.itemName).join('، ')}</TableCell>
-                            <TableCell>{pur.transportCost.toLocaleString('fa-IR')} تومان</TableCell>
+                            <TableCell>{(pur.transportCost || 0).toLocaleString('fa-IR')} تومان</TableCell>
                             <TableCell className="font-semibold">{Math.round(totalValue).toLocaleString('fa-IR')} تومان</TableCell>
                         </TableRow>
                     )
