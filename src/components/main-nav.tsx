@@ -36,16 +36,15 @@ export function MainNav() {
         const isActive = pathname.startsWith(link.href);
         return (
           <SidebarMenuItem key={link.href}>
-            <Link href={link.href} passHref legacyBehavior>
-              <SidebarMenuButton
-                as="a"
-                isActive={isActive}
-                tooltip={link.label}
-              >
-                <link.icon />
-                <span>{link.label}</span>
-              </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton
+              as={Link}
+              href={link.href}
+              isActive={isActive}
+              tooltip={link.label}
+            >
+              <link.icon />
+              <span>{link.label}</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         );
       })}
