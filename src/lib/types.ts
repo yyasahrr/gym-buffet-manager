@@ -38,7 +38,8 @@ export type Food = {
   name: string;
   recipe: RecipeItem[];
   sellPrice: number;
-  imageId: string;
+  imageId: string; // For placeholder fallback
+  imageDataUrl?: string | null; // For uploaded images
   status: 'active' | 'archived';
 };
 
@@ -77,7 +78,6 @@ export type PurchaseItem = {
     itemName: string; // denormalized for easier display
     quantity: number;
     lineTotalCost: number; // Total cost for the quantity entered
-    unitPrice?: number; // Legacy support
 };
 
 export type Purchase = {
