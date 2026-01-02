@@ -19,11 +19,12 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 import { Badge } from '@/components/ui/badge';
-import { Order, Purchase, CustomerTransaction } from '@/lib/types';
+import { Order, Purchase, CustomerTransaction, Customer } from '@/lib/types';
 import { format as formatJalali, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns-jalali';
 import { useState, useMemo, useEffect } from 'react';
 import { useAppData } from '@/lib/store';
@@ -33,6 +34,9 @@ import { Button } from '@/components/ui/button';
 import { Info } from 'lucide-react';
 
 type DateRangeOption = 'today' | 'this_week' | 'this_month' | 'all';
+
+const COLORS_GREEN = ['#16a34a', '#22c55e', '#4ade80', '#86efac', '#bbf7d0'];
+const COLORS_RED = ['#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fecaca'];
 
 
 export default function ReportsPage() {
@@ -71,6 +75,17 @@ export default function ReportsPage() {
       return isWithinInterval(itemDate, dateInterval);
     });
   };
+  
+  const customerBalances = useMemo(() => {
+    const balances = new Map<string, number>();
+    customers.forEach(c => balances.set(c.id, 0));
+    customerTransactions.forEach(t => {
+      const currentBalance = balances.get(t.customerId) || 0;
+      const newBalance = t.type === 'credit' ? currentBalance + t.amount : currentBalance - t.amount;
+      balances.set(t.customerId, newBalance);
+    });
+    return balances;
+  }, [customers, customerTransactions]);
 
   const filteredOrders = useMemo(() => filterByDate(orders), [orders, dateInterval]);
   const filteredPurchases = useMemo(() => filterByDate(purchases), [purchases, dateInterval]);
@@ -263,6 +278,88 @@ export default function ReportsPage() {
     </div>
   );
 
+  const renderCustomerBalanceTab = () => {
+    const creditData = Array.from(customerBalances.entries())
+      .map(([id, balance]) => ({ id, balance, name: customerMap.get(id)?.name || 'نامشخص' }))
+      .filter(c => c.balance > 0)
+      .sort((a,b) => b.balance - a.balance);
+
+    const debitData = Array.from(customerBalances.entries())
+      .map(([id, balance]) => ({ id, balance: Math.abs(balance), name: customerMap.get(id)?.name || 'نامشخص' }))
+      .filter(c => c.balance > 0 && customerBalances.get(c.id)! < 0)
+      .sort((a,b) => b.balance - a.balance);
+    
+    const totalPositiveBalance = creditData.reduce((sum, c) => sum + c.balance, 0);
+    const totalNegativeBalance = debitData.reduce((sum, c) => sum + c.balance, 0);
+
+    const CustomTooltip = ({ active, payload }: any) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="p-2 text-sm bg-background border rounded-lg shadow-sm">
+                    <p className="font-bold">{payload[0].name}</p>
+                    <p>{`${payload[0].value.toLocaleString('fa-IR')} تومان`}</p>
+                </div>
+            );
+        }
+        return null;
+    };
+    
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle>اعتبار مشتریان</CardTitle>
+                    <CardDescription>نمودار مشتریانی که حساب مثبت دارند.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                   <div className="p-4 bg-muted/50 rounded-lg mb-4">
+                        <p className="text-sm text-muted-foreground">مجموع کل اعتبارها</p>
+                        <p className="text-2xl font-bold text-green-600">{totalPositiveBalance.toLocaleString('fa-IR')} تومان</p>
+                    </div>
+                   {creditData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                                <Pie data={creditData} dataKey="balance" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
+                                    {creditData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS_GREEN[index % COLORS_GREEN.length]} />)}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                   ) : (
+                        <p className="text-center text-muted-foreground py-8">هیچ مشتری با اعتبار مثبت وجود ندارد.</p>
+                   )}
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>بدهی مشتریان</CardTitle>
+                    <CardDescription>نمودار مشتریانی که حساب منفی (بدهی) دارند.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="p-4 bg-muted/50 rounded-lg mb-4">
+                        <p className="text-sm text-muted-foreground">مجموع کل بدهی‌ها</p>
+                        <p className="text-2xl font-bold text-red-600">{totalNegativeBalance.toLocaleString('fa-IR')} تومان</p>
+                    </div>
+                    {debitData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                                <Pie data={debitData} dataKey="balance" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
+                                    {debitData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS_RED[index % COLORS_RED.length]} />)}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    ) : (
+                         <p className="text-center text-muted-foreground py-8">هیچ مشتری بدهکاری وجود ندارد.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       <Header breadcrumbs={[]} activeBreadcrumb="گزارشات" />
@@ -282,14 +379,16 @@ export default function ReportsPage() {
         </PageHeader>
         
         <Tabs defaultValue="sales">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsList className="grid w-full grid-cols-4 mb-4">
                 <TabsTrigger value="sales">فروش</TabsTrigger>
                 <TabsTrigger value="purchases">خرید</TabsTrigger>
                 <TabsTrigger value="customer_ledger">حساب مشتریان</TabsTrigger>
+                <TabsTrigger value="customer_balance">بالانس مشتریان</TabsTrigger>
             </TabsList>
             <TabsContent value="sales">{isClient ? renderSalesTab() : renderSkeleton()}</TabsContent>
             <TabsContent value="purchases">{isClient ? renderPurchasesTab() : renderSkeleton()}</TabsContent>
             <TabsContent value="customer_ledger">{isClient ? renderCustomerLedgerTab() : renderSkeleton()}</TabsContent>
+            <TabsContent value="customer_balance">{isClient ? renderCustomerBalanceTab() : renderSkeleton()}</TabsContent>
         </Tabs>
 
         <Dialog open={!!selectedOrder} onOpenChange={(isOpen) => !isOpen && setSelectedOrder(null)}>
