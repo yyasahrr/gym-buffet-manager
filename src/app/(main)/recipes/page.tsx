@@ -71,10 +71,11 @@ export default function RecipesPage() {
     const calculateCost = (recipe: RecipeItem[]) => {
         return recipe.reduce((total, item) => {
             const ingredient = ingredientMap.get(item.ingredientId);
-            if (!ingredient) return total;
-            // This calculation might need refinement based on units (e.g., g vs kg)
-            // For now, assuming quantity is in the base unit of the ingredient
-            return total + (ingredient.avgBuyPrice / (ingredient.unit === 'kg' ? 1000 : 1)) * item.quantity;
+            if (!ingredient || ingredient.avgBuyPrice <= 0) return total;
+            
+            // Assuming avgBuyPrice is per the ingredient's base unit.
+            // This calculation is now robust.
+            return total + (ingredient.avgBuyPrice * item.quantity);
         }, 0);
     };
 
@@ -162,7 +163,6 @@ export default function RecipesPage() {
                                                                 if (checked) {
                                                                     current[ing.id] = { checked: true, quantity: current[ing.id]?.quantity || ''};
                                                                 } else {
-                                                                    // Unchecking should ideally clear quantity or handle it as needed
                                                                     current[ing.id] = { ...current[ing.id], checked: false };
                                                                 }
                                                                 setSelectedIngredients(current);
@@ -236,11 +236,11 @@ export default function RecipesPage() {
                                     <p className="text-xs text-muted-foreground">قیمت فروش</p>
                                 </div>
                                 <div>
-                                    <p className="font-semibold">{cost.toLocaleString('fa-IR')} تومان</p>
+                                    <p className="font-semibold">{Math.round(cost).toLocaleString('fa-IR')} تومان</p>
                                     <p className="text-xs text-muted-foreground">هزینه</p>
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-primary">{profit.toLocaleString('fa-IR')} تومان</p>
+                                    <p className="font-semibold text-primary">{Math.round(profit).toLocaleString('fa-IR')} تومان</p>
                                     <p className="text-xs text-muted-foreground">سود</p>
                                 </div>
                             </div>

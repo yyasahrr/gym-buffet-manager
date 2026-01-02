@@ -44,12 +44,10 @@ const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
 
 const packagingTypes = [
     "دانه‌ای",
-    "بسته ۳۰تایی",
-    "بسته‌بندی ۲۵۰ گرمی",
-    "بسته‌بندی ۵۰۰ گرمی",
-    "بسته‌بندی ۱ کیلویی",
     "شیشه",
     "قوطی",
+    "کیسه",
+    "جعبه",
 ];
 
 export default function IngredientsPage() {
@@ -138,7 +136,7 @@ export default function IngredientsPage() {
                             <DialogHeader>
                                 <DialogTitle>افزودن نوع ماده اولیه جدید</DialogTitle>
                                 <DialogDescription>
-                                    ماده اولیه جدید با موجودی اولیه صفر ایجاد می‌شود. برای افزایش موجودی به صفحه خرید مراجعه کنید.
+                                    موجودی اولیه صفر است. برای افزودن موجودی به صفحه خرید مراجعه کنید.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
@@ -153,7 +151,7 @@ export default function IngredientsPage() {
                                   />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="variantName" className="text-right">نوع بسته</Label>
+                                    <Label htmlFor="variantName" className="text-right">نوع بسته‌بندی (اختیاری)</Label>
                                     <Select value={newIngredient.variantName} onValueChange={(value) => setNewIngredient({...newIngredient, variantName: value})}>
                                         <SelectTrigger className="col-span-3">
                                             <SelectValue placeholder="انتخاب نوع بسته‌بندی" />
@@ -240,7 +238,7 @@ export default function IngredientsPage() {
                                             <TableCell className="align-middle">
                                                 <Badge variant={stockToDisplay > 0 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
                                             </TableCell>
-                                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice > 0 ? `${ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}</TableCell>
+                                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice > 0 ? `${Math.round(ingredient.avgBuyPrice).toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}</TableCell>
                                         </TableRow>
                                     )
                                 })}
