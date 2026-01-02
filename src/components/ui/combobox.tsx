@@ -40,18 +40,22 @@ export function Combobox({ items, value, onChange, placeholder = "Select an item
           className={cn("w-full justify-between", className)}
         >
           {value
-            ? items.find((item) => item.value === value)?.label
+            ? items.find((item) => item.value.toLowerCase() === value.toLowerCase())?.label ?? value
             : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
-          <CommandInput placeholder={placeholder} />
+        <Command shouldFilter={false}>
+          <CommandInput 
+            placeholder={placeholder}
+            value={value}
+            onValueChange={onChange}
+          />
           <CommandEmpty>موردی یافت نشد.</CommandEmpty>
           <CommandList>
             <CommandGroup>
-                {items.map((item) => (
+                {items.filter(item => item.label.toLowerCase().includes(value.toLowerCase())).map((item) => (
                 <CommandItem
                     key={item.value}
                     value={item.value}
@@ -63,7 +67,7 @@ export function Combobox({ items, value, onChange, placeholder = "Select an item
                     <Check
                     className={cn(
                         "mr-2 h-4 w-4",
-                        value === item.value ? "opacity-100" : "opacity-0"
+                        value.toLowerCase() === item.value.toLowerCase() ? "opacity-100" : "opacity-0"
                     )}
                     />
                     {item.label}
