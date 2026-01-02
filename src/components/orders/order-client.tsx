@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Plus, Minus, Trash2, ShoppingCart, Loader2, User } from 'lucide-react';
-import { products, foods, ingredients, customers } from '@/lib/data';
+import { products, foods, ingredients, customers as initialCustomers } from '@/lib/data';
 import type { OrderItem, Product, Food, Customer } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
 
@@ -23,6 +23,7 @@ import { Label } from '../ui/label';
 import { cn } from '@/lib/utils';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
+const CUSTOMERS_STORAGE_KEY = 'gym-canteen-customers';
 
 function getItemCost(item: Product | Food): number {
   if ('avgBuyPrice' in item) {
@@ -38,15 +39,27 @@ function getItemCost(item: Product | Food): number {
 
 export default function OrderClient() {
   const [cart, setCart] = useState<OrderItem[]>([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>(
-    customers.find(c => c.name === 'مشتری حضوری')?.id
-  );
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    const storedCustomers = localStorage.getItem(CUSTOMERS_STORAGE_KEY);
+    const loadedCustomers = storedCustomers ? JSON.parse(storedCustomers) : initialCustomers;
+    setCustomers(loadedCustomers);
+
+    const defaultCustomer = loadedCustomers.find((c: Customer) => c.name === 'مشتری حضوری');
+    if (defaultCustomer) {
+      setSelectedCustomerId(defaultCustomer.id);
+    } else if (loadedCustomers.length > 0) {
+      setSelectedCustomerId(loadedCustomers[0].id);
+    }
+  }, []);
+
   const selectedCustomer = useMemo(() => {
     return customers.find(c => c.id === selectedCustomerId);
-  }, [selectedCustomerId]);
+  }, [selectedCustomerId, customers]);
 
   const addToCart = (item: Product | Food) => {
     setCart((prevCart) => {
@@ -103,11 +116,19 @@ export default function OrderClient() {
     
     // Simulate API call
     setTimeout(() => {
-        if (selectedCustomer && newBalance !== null && newBalance < 0 && newBalance >= -selectedCustomer.creditLimit) {
+        if (selectedCustomer && newBalance !== null) {
+          const updatedCustomers = customers.map(c => 
+            c.id === selectedCustomer.id ? {...c, balance: newBalance} : c
+          );
+          setCustomers(updatedCustomers);
+          localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(updatedCustomers));
+          
+          if (newBalance < 0 && newBalance >= -selectedCustomer.creditLimit) {
             toast({
                 title: "هشدار: موجودی مشتری منفی است",
                 description: `موجودی جدید ${selectedCustomer.name} مبلغ ${newBalance.toLocaleString('fa-IR')} تومان خواهد بود.`,
             });
+          }
         }
     
         toast({

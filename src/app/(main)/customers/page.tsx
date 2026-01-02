@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { customers as initialCustomers, Customer } from '@/lib/data';
 import { Header } from '@/components/header';
@@ -38,12 +38,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
+const CUSTOMERS_STORAGE_KEY = 'gym-canteen-customers';
+
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerCredit, setNewCustomerCredit] = useState('');
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const storedCustomers = localStorage.getItem(CUSTOMERS_STORAGE_KEY);
+    if (storedCustomers) {
+      setCustomers(JSON.parse(storedCustomers));
+    } else {
+      setCustomers(initialCustomers);
+      localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(initialCustomers));
+    }
+  }, []);
 
   const handleAddCustomer = () => {
     if (!newCustomerName || !newCustomerCredit) {
@@ -62,7 +74,10 @@ export default function CustomersPage() {
       creditLimit: parseInt(newCustomerCredit, 10),
     };
 
-    setCustomers(prev => [...prev, newCustomer]);
+    const updatedCustomers = [...customers, newCustomer];
+    setCustomers(updatedCustomers);
+    localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(updatedCustomers));
+    
     toast({
       title: "موفقیت‌آمیز",
       description: `مشتری "${newCustomerName}" با موفقیت اضافه شد.`,
@@ -119,11 +134,9 @@ export default function CustomersPage() {
                 </div>
               </div>
               <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="secondary">
+                <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
                     لغو
-                  </Button>
-                </DialogClose>
+                </Button>
                 <Button type="submit" onClick={handleAddCustomer}>ذخیره مشتری</Button>
               </DialogFooter>
             </DialogContent>
