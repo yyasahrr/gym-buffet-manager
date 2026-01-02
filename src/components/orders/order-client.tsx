@@ -135,6 +135,11 @@ export default function OrderClient() {
         prevCart.map((item) => (item.item.id === itemId ? { ...item, quantity: newQuantity } : item))
     );
   };
+  
+  const removeFromCart = (itemId: string) => {
+    setCart((prevCart) => prevCart.filter((item) => item.item.id !== itemId));
+  };
+
 
   const cartTotal = useMemo(() => {
     return cart.reduce((total, cartItem) => total + cartItem.item.sellPrice * cartItem.quantity, 0);
@@ -376,7 +381,7 @@ export default function OrderClient() {
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => updateQuantity(cartItem.item.id, 0)} disabled={isCheckingOut}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeFromCart(cartItem.item.id)} disabled={isCheckingOut}>
                         <Trash2 className="h-4 w-4"/>
                     </Button>
                   </div>

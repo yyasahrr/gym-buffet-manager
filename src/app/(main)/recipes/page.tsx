@@ -1,6 +1,6 @@
 'use client';
 
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { foods as initialFoods, ingredients as allInitialIngredients, Food, Ingredient, RecipeItem } from '@/lib/data';
 import { unitLabels } from '@/lib/types';
@@ -29,9 +29,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 const FOODS_STORAGE_KEY = 'gym-canteen-foods';
@@ -45,9 +44,9 @@ export default function RecipesPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const { toast } = useToast();
     
-    const [newRecipeName, setNewRecipeName] = useState('');
-    const [newRecipePrice, setNewRecipePrice] = useState('');
-    const [selectedIngredients, setSelectedIngredients] = useState<Record<string, {checked: boolean, quantity: string}>>({});
+    const [recipeName, setRecipeName] = useState('');
+    const [recipePrice, setRecipePrice] = useState('');
+    const [recipeItems, setRecipeItems] = useState<Partial<RecipeItem>[]>([{}]);
 
     useEffect(() => {
         const storedFoods = localStorage.getItem(FOODS_STORAGE_KEY);
@@ -56,14 +55,13 @@ export default function RecipesPage() {
         const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
         const loadedIngredients = storedIngredients ? JSON.parse(storedIngredients) : allInitialIngredients;
         setAllIngredients(loadedIngredients);
-        
-        const initialSelected = loadedIngredients.reduce((acc: Record<string, {checked: boolean, quantity: string}>, ing: Ingredient) => {
-            acc[ing.id] = { checked: false, quantity: '' };
-            return acc;
-        }, {});
-        setSelectedIngredients(initialSelected);
-
     }, []);
+    
+    const resetForm = () => {
+        setRecipeName('');
+        setRecipePrice('');
+        setRecipeItems([{}]);
+    }
     
     const activeIngredients = useMemo(() => allIngredients.filter(i => i.status === 'active'), [allIngredients]);
 
@@ -84,27 +82,39 @@ export default function RecipesPage() {
             food.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [foods, searchQuery]);
+    
+    const handleItemChange = (index: number, key: string, value: any) => {
+        const updatedItems = [...recipeItems];
+        updatedItems[index] = { ...updatedItems[index], [key]: value };
+        setRecipeItems(updatedItems);
+    };
 
-    const handleAddRecipe = () => {
-        if (!newRecipeName || !newRecipePrice || Object.keys(selectedIngredients).length === 0) {
-            toast({ variant: "destructive", title: "خطا", description: "لطفاً نام، قیمت و حداقل یک ماده اولیه را مشخص کنید." });
+    const addRecipeLine = () => setRecipeItems([...recipeItems, {}]);
+    const removeRecipeLine = (index: number) => {
+        if (recipeItems.length > 1) {
+            setRecipeItems(recipeItems.filter((_, i) => i !== index));
+        }
+    };
+
+    const handleSaveRecipe = () => {
+        if (!recipeName || !recipePrice || parseInt(recipePrice) <= 0) {
+            toast({ variant: "destructive", title: "خطا", description: "لطفاً نام و قیمت فروش معتبر را وارد کنید." });
             return;
         }
 
-        const recipeItems: RecipeItem[] = Object.entries(selectedIngredients)
-            .filter(([, val]) => val.checked && val.quantity && parseFloat(val.quantity) > 0)
-            .map(([id, val]) => ({ ingredientId: id, quantity: parseFloat(val.quantity) }));
-
-        if (recipeItems.length === 0) {
-            toast({ variant: "destructive", title: "خطا", description: "لطفاً برای مواد اولیه انتخاب شده مقدار مشخص کنید." });
+        const finalRecipeItems: RecipeItem[] = recipeItems
+            .filter((item): item is RecipeItem => !!item.ingredientId && !!item.quantity && item.quantity > 0)
+            
+        if (finalRecipeItems.length === 0) {
+            toast({ variant: "destructive", title: "خطا", description: "دستور پخت باید حداقل شامل یک ماده اولیه با مقدار معتبر باشد." });
             return;
         }
 
         const newFood: Food = {
             id: `food-${Date.now()}`,
-            name: newRecipeName,
-            sellPrice: parseInt(newRecipePrice, 10),
-            recipe: recipeItems,
+            name: recipeName,
+            sellPrice: parseInt(recipePrice, 10),
+            recipe: finalRecipeItems,
             imageId: 'avocado_toast', // Default image
             status: 'active',
         };
@@ -113,16 +123,9 @@ export default function RecipesPage() {
         setFoods(updatedFoods);
         localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(updatedFoods));
 
-        toast({ title: "موفقیت‌آمیز", description: `دستور پخت "${newRecipeName}" با موفقیت اضافه شد.` });
+        toast({ title: "موفقیت‌آمیز", description: `دستور پخت "${recipeName}" با موفقیت اضافه شد.` });
         setIsDialogOpen(false);
-        setNewRecipeName('');
-        setNewRecipePrice('');
-        
-        const resetSelected = allIngredients.reduce((acc: Record<string, {checked: boolean, quantity: string}>, ing: Ingredient) => {
-            acc[ing.id] = { checked: false, quantity: '' };
-            return acc;
-        }, {});
-        setSelectedIngredients(resetSelected);
+        resetForm();
     };
 
     return (
@@ -130,7 +133,7 @@ export default function RecipesPage() {
             <Header onSearch={setSearchQuery} breadcrumbs={[]} activeBreadcrumb="دستور پخت‌ها" />
             <main className="flex-1 p-4 sm:px-6 sm:py-6">
                 <PageHeader title="دستور پخت غذاها">
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if (!isOpen) resetForm(); setIsDialogOpen(isOpen); }}>
                         <DialogTrigger asChild>
                             <Button>
                                 <PlusCircle className="ml-2 h-4 w-4" /> ایجاد دستور پخت
@@ -140,62 +143,60 @@ export default function RecipesPage() {
                             <DialogHeader>
                                 <DialogTitle>ایجاد دستور پخت جدید</DialogTitle>
                             </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">نام دستور پخت</Label>
-                                    <Input id="name" value={newRecipeName} onChange={(e) => setNewRecipeName(e.target.value)} />
+                            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-2">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name">نام دستور پخت</Label>
+                                        <Input id="name" value={recipeName} onChange={(e) => setRecipeName(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="price">قیمت فروش (تومان)</Label>
+                                        <Input id="price" type="number" value={recipePrice} onChange={(e) => setRecipePrice(e.target.value)} />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="price">قیمت فروش</Label>
-                                    <Input id="price" type="number" value={newRecipePrice} onChange={(e) => setNewRecipePrice(e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>مواد اولیه</Label>
-                                    <ScrollArea className="h-48 rounded-md border p-4">
-                                        <div className="space-y-4">
-                                            {activeIngredients.map(ing => (
-                                                <div key={ing.id} className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <Checkbox
-                                                            id={`ing-${ing.id}`}
-                                                            checked={selectedIngredients[ing.id]?.checked || false}
-                                                            onCheckedChange={(checked) => {
-                                                                const current = {...selectedIngredients};
-                                                                if (checked) {
-                                                                    current[ing.id] = { checked: true, quantity: current[ing.id]?.quantity || ''};
-                                                                } else {
-                                                                    current[ing.id] = { ...current[ing.id], checked: false };
-                                                                }
-                                                                setSelectedIngredients(current);
-                                                            }}
-                                                        />
-                                                        <Label htmlFor={`ing-${ing.id}`}>{ing.name}</Label>
+                                <Separator />
+                                 <Label className="font-bold">مواد اولیه</Label>
+                                    <div className="space-y-2">
+                                        {recipeItems.map((item, index) => {
+                                            const selectedIngredient = activeIngredients.find(i => i.id === item.ingredientId);
+                                            const unitLabel = selectedIngredient ? unitLabels[selectedIngredient.unit] : '';
+                                            return (
+                                                <div key={index} className="flex items-end gap-2">
+                                                    <div className='flex-grow space-y-2'>
+                                                        <Label>ماده اولیه</Label>
+                                                        <Select value={item.ingredientId} onValueChange={val => handleItemChange(index, 'ingredientId', val)}>
+                                                            <SelectTrigger><SelectValue placeholder="انتخاب..." /></SelectTrigger>
+                                                            <SelectContent>
+                                                                {activeIngredients.map(ing => (
+                                                                    <SelectItem key={ing.id} value={ing.id}>{ing.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
+                                                     <div className='space-y-2'>
+                                                        <Label>مقدار ({unitLabel})</Label>
                                                         <Input
                                                             type="number"
-                                                            placeholder="مقدار"
-                                                            className="w-24 h-8"
-                                                            value={selectedIngredients[ing.id]?.quantity || ''}
-                                                            disabled={!selectedIngredients[ing.id]?.checked}
-                                                            onChange={(e) => setSelectedIngredients({
-                                                                ...selectedIngredients,
-                                                                [ing.id]: { ...selectedIngredients[ing.id], quantity: e.target.value }
-                                                            })}
+                                                            className="w-28"
+                                                            placeholder='0'
+                                                            value={item.quantity || ''}
+                                                            onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
                                                         />
-                                                        <span className="text-sm text-muted-foreground w-12 text-right">
-                                                            {unitLabels[ing.unit]}
-                                                        </span>
-                                                    </div>
+                                                     </div>
+                                                    <Button variant="ghost" size="icon" onClick={() => removeRecipeLine(index)} disabled={recipeItems.length === 1}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
-                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                <Button variant="outline" size="sm" onClick={addRecipeLine} className="mt-2">
+                                    <PlusCircle className="ml-2 h-4 w-4" /> افزودن ردیف
+                                </Button>
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>لغو</Button>
-                                <Button type="submit" onClick={handleAddRecipe}>ذخیره</Button>
+                                <Button type="submit" onClick={handleSaveRecipe}>ذخیره</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
@@ -205,6 +206,10 @@ export default function RecipesPage() {
                     const cost = calculateCost(food.recipe);
                     const profit = food.sellPrice - cost;
                     const image = imageMap.get(food.imageId);
+                    const hasCostHistory = food.recipe.every(item => {
+                         const ingredient = ingredientMap.get(item.ingredientId);
+                         return ingredient && ingredient.avgBuyPrice > 0;
+                    });
 
                     return (
                     <Card key={food.id} className="overflow-hidden">
@@ -238,7 +243,8 @@ export default function RecipesPage() {
                                 </div>
                                 <div>
                                     <p className="font-semibold">{Math.round(cost).toLocaleString('fa-IR')} تومان</p>
-                                    <p className="text-xs text-muted-foreground">هزینه</p>
+                                    <p className="text-xs text-muted-foreground">هزینه تمام شده</p>
+                                    {!hasCostHistory && <p className='text-xs text-destructive'>(تخمینی)</p>}
                                 </div>
                                 <div>
                                     <p className="font-semibold text-primary">{Math.round(profit).toLocaleString('fa-IR')} تومان</p>
