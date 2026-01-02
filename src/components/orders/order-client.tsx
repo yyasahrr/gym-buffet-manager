@@ -3,8 +3,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Plus, Minus, Trash2, ShoppingCart, Loader2, User } from 'lucide-react';
-import { products as initialProducts, foods as initialFoods, ingredients as initialIngredients, customers as initialCustomers } from '@/lib/data';
-import type { OrderItem, Product, Food, Customer } from '@/lib/types';
+import { products as initialProducts, foods as initialFoods, ingredients as initialIngredients, customers as initialCustomers, recentOrders as initialOrders } from '@/lib/data';
+import type { Order, OrderItem, Product, Food, Customer, Ingredient } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
 
 import {
@@ -28,6 +28,7 @@ const CUSTOMERS_STORAGE_KEY = 'gym-canteen-customers';
 const PRODUCTS_STORAGE_KEY = 'gym-canteen-products';
 const FOODS_STORAGE_KEY = 'gym-canteen-foods';
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
+const ORDERS_STORAGE_KEY = 'gym-canteen-orders';
 
 export default function OrderClient() {
   const [cart, setCart] = useState<OrderItem[]>([]);
@@ -35,6 +36,7 @@ export default function OrderClient() {
   const [products, setProducts] = useState<Product[]>([]);
   const [foods, setFoods] = useState<Food[]>([]);
   const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -61,20 +63,14 @@ export default function OrderClient() {
 
     const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
     setAllIngredients(storedIngredients ? JSON.parse(storedIngredients) : initialIngredients);
+    
+    const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
+    setOrders(storedOrders ? JSON.parse(storedOrders) : initialOrders);
+
 
   }, []);
 
   const ingredientMap = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
-
-  function getItemCost(item: Product | Food): number {
-    if ('avgBuyPrice' in item) {
-      return item.avgBuyPrice;
-    }
-    return item.recipe.reduce((total, recipeItem) => {
-      const ingredient = ingredientMap.get(recipeItem.ingredientId);
-      return total + (ingredient ? ingredient.avgBuyPrice * recipeItem.quantity : 0);
-    }, 0);
-  }
 
   const selectedCustomer = useMemo(() => {
     return customers.find(c => c.id === selectedCustomerId);
@@ -121,8 +117,17 @@ export default function OrderClient() {
         });
         return;
     }
+    
+    if (!selectedCustomer) {
+        toast({
+            variant: "destructive",
+            title: "مشتری انتخاب نشده",
+            description: "لطفاً یک مشتری را برای ثبت سفارش انتخاب کنید.",
+        });
+        return;
+    }
 
-    if (selectedCustomer && newBalance !== null && newBalance < -selectedCustomer.creditLimit) {
+    if (newBalance !== null && newBalance < -selectedCustomer.creditLimit) {
       toast({
           variant: "destructive",
           title: "سقف اعتبار رد شده است",
@@ -133,25 +138,34 @@ export default function OrderClient() {
 
     setIsCheckingOut(true);
     
+    // Simulate API call
     setTimeout(() => {
+        let updatedCustomers = [...customers];
         if (selectedCustomer && newBalance !== null) {
-          const updatedCustomers = customers.map(c => 
+          updatedCustomers = customers.map(c => 
             c.id === selectedCustomer.id ? {...c, balance: newBalance} : c
           );
           setCustomers(updatedCustomers);
           localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(updatedCustomers));
-          
-          if (newBalance < 0 && newBalance >= -selectedCustomer.creditLimit) {
-            toast({
-                title: "هشدار: موجودی مشتری منفی است",
-                description: `موجودی جدید ${selectedCustomer.name} مبلغ ${newBalance.toLocaleString('fa-IR')} تومان خواهد بود.`,
-            });
-          }
         }
+
+        const newOrder: Order = {
+            id: `ord-${Date.now()}`,
+            customerId: selectedCustomer.id,
+            customerName: selectedCustomer.name,
+            items: cart,
+            total: cartTotal,
+            createdAt: new Date().toISOString(),
+            status: selectedCustomer.name === 'مشتری حضوری' ? 'پرداخت شده' : 'در انتظار پرداخت',
+        }
+
+        const updatedOrders = [...orders, newOrder];
+        setOrders(updatedOrders);
+        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
     
         toast({
           title: "سفارش ثبت شد!",
-          description: `مجموع: ${cartTotal.toLocaleString('fa-IR')} تومان برای ${selectedCustomer?.name || 'مشتری حضوری'}.`,
+          description: `مجموع: ${cartTotal.toLocaleString('fa-IR')} تومان برای ${selectedCustomer.name}.`,
         });
         setCart([]);
         setIsCheckingOut(false);
@@ -288,7 +302,7 @@ export default function OrderClient() {
                 <div className="w-full space-y-2 text-sm">
                     <div className="flex justify-between">
                     <span className="text-muted-foreground">موجودی فعلی</span>
-                    <span>{selectedCustomer.balance.toLocaleString('fa-IR')} تومان</span>
+                    <span className={cn(selectedCustomer.balance < 0 && 'text-destructive')}>{selectedCustomer.balance.toLocaleString('fa-IR')} تومان</span>
                     </div>
                     <div className="flex justify-between">
                     <span className="text-muted-foreground">مجموع سفارش</span>
@@ -308,7 +322,7 @@ export default function OrderClient() {
                     <span>مجموع</span>
                     <span>{cartTotal.toLocaleString('fa-IR')} تومان</span>
                 </div>
-            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" size="lg" onClick={handleCheckout} disabled={isCheckingOut}>
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" size="lg" onClick={handleCheckout} disabled={isCheckingOut || !selectedCustomerId}>
                 {isCheckingOut ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

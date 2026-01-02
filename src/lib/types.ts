@@ -21,8 +21,9 @@ export const unitLabels: Record<Unit, string> = {
 export type Ingredient = {
   id: string;
   name: string;
+  variantName?: string; // e.g., "Single" vs "Pack of 30" for eggs
   stock: number;
-  avgBuyPrice: number;
+  avgBuyPrice: number; // Price per single unit ('g', 'ml', 'count')
   imageId: string;
   unit: Unit;
 };
@@ -50,6 +51,7 @@ export type Order = {
   items: OrderItem[];
   total: number;
   customerName: string;
+  customerId: string;
   createdAt: string;
   status: 'پرداخت شده' | 'در انتظار پرداخت';
 };
@@ -57,6 +59,6 @@ export type Order = {
 export type Customer = {
   id: string;
   name: string;
-  balance: number;
+  balance: number; // Positive is credit, negative is debt
   creditLimit: number;
 };

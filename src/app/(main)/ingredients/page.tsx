@@ -48,7 +48,7 @@ export default function IngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newIngredient, setNewIngredient] = useState<{name: string; stock: string; avgBuyPrice: string; unit: Unit}>({ name: '', stock: '', avgBuyPrice: '', unit: 'g' });
+    const [newIngredient, setNewIngredient] = useState<{name: string; variantName: string; stock: string; avgBuyPrice: string; unit: Unit}>({ name: '', variantName: '', stock: '', avgBuyPrice: '', unit: 'g' });
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -65,17 +65,18 @@ export default function IngredientsPage() {
 
     const filteredIngredients = useMemo(() => {
         return ingredients.filter(ingredient =>
-            ingredient.name.toLowerCase().includes(searchQuery.toLowerCase())
+            ingredient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            ingredient.variantName?.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [ingredients, searchQuery]);
 
     const handleAddIngredient = () => {
-        const { name, stock, avgBuyPrice, unit } = newIngredient;
+        const { name, variantName, stock, avgBuyPrice, unit } = newIngredient;
         if (!name || !stock || !avgBuyPrice || !unit) {
             toast({
                 variant: "destructive",
                 title: "خطا",
-                description: "لطفاً تمام فیلدها را پر کنید.",
+                description: "لطفاً تمام فیلدهای لازم را پر کنید.",
             });
             return;
         }
@@ -83,6 +84,7 @@ export default function IngredientsPage() {
         const newIngredientData: Ingredient = {
             id: `ing-${Date.now()}`,
             name,
+            variantName: variantName || undefined,
             stock: parseInt(stock, 10),
             avgBuyPrice: parseInt(avgBuyPrice, 10),
             imageId: 'tomato', // Default image
@@ -99,7 +101,7 @@ export default function IngredientsPage() {
         });
 
         setIsDialogOpen(false);
-        setNewIngredient({ name: '', stock: '', avgBuyPrice: '', unit: 'g' });
+        setNewIngredient({ name: '', variantName: '', stock: '', avgBuyPrice: '', unit: 'g' });
     };
 
     return (
@@ -124,6 +126,10 @@ export default function IngredientsPage() {
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="name" className="text-right">نام</Label>
                                     <Input id="name" value={newIngredient.name} onChange={(e) => setNewIngredient({...newIngredient, name: e.target.value})} className="col-span-3"/>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="variantName" className="text-right">نوع/بسته</Label>
+                                    <Input id="variantName" placeholder='مثال: بسته‌بندی ۱ کیلویی' value={newIngredient.variantName} onChange={(e) => setNewIngredient({...newIngredient, variantName: e.target.value})} className="col-span-3"/>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="unit" className="text-right">واحد</Label>
@@ -168,19 +174,19 @@ export default function IngredientsPage() {
                                 </TableHead>
                                 <TableHead>نام</TableHead>
                                 <TableHead>موجودی</TableHead>
-                                <TableHead className="hidden md:table-cell">میانگین قیمت خرید (به ازای هر واحد)</TableHead>
-                                <TableHead className="hidden md:table-cell">تاریخ ایجاد</TableHead>
+                                <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isClient && filteredIngredients.map(ingredient => {
                                     const image = imageMap.get(ingredient.imageId);
+                                    const displayName = `${ingredient.name} ${ingredient.variantName ? `(${ingredient.variantName})` : ''}`;
                                     return (
                                         <TableRow key={ingredient.id}>
                                             <TableCell className="hidden sm:table-cell align-middle">
                                                 {image && (
                                                     <Image
-                                                        alt={ingredient.name}
+                                                        alt={displayName}
                                                         className="aspect-square rounded-md object-cover"
                                                         height="64"
                                                         src={image.imageUrl}
@@ -189,12 +195,11 @@ export default function IngredientsPage() {
                                                     />
                                                 )}
                                             </TableCell>
-                                            <TableCell className="font-medium align-middle">{ingredient.name}</TableCell>
+                                            <TableCell className="font-medium align-middle">{displayName}</TableCell>
                                             <TableCell className="align-middle">
-                                                <Badge variant={ingredient.stock > 20 ? 'outline' : 'destructive'}>{ingredient.stock} {unitLabels[ingredient.unit]}</Badge>
+                                                <Badge variant={ingredient.stock > 20 ? 'outline' : 'destructive'}>{ingredient.stock.toLocaleString('fa-IR')} {unitLabels[ingredient.unit]}</Badge>
                                             </TableCell>
-                                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
-                                            <TableCell className="hidden md:table-cell align-middle">{new Date().toLocaleDateString('fa-IR')}</TableCell>
+                                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان / {unitLabels[ingredient.unit]}</TableCell>
                                         </TableRow>
                                     )
                                 })}

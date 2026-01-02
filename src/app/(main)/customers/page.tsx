@@ -36,6 +36,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const CUSTOMERS_STORAGE_KEY = 'gym-canteen-customers';
 
@@ -163,8 +164,8 @@ export default function CustomersPage() {
                     <span className="sr-only">تصویر</span>
                   </TableHead>
                   <TableHead>نام</TableHead>
-                  <TableHead>موجودی</TableHead>
-                  <TableHead>سقف اعتبار</TableHead>
+                  <TableHead>وضعیت حساب (تومان)</TableHead>
+                  <TableHead>سقف اعتبار (تومان)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -180,13 +181,13 @@ export default function CustomersPage() {
                       </Avatar>
                     </TableCell>
                     <TableCell className="font-medium align-middle">{customer.name}</TableCell>
-                    <TableCell className="align-middle">
-                      <Badge variant={customer.balance >= 0 ? 'outline' : 'destructive'}>
-                        {customer.balance.toLocaleString('fa-IR')} تومان
-                      </Badge>
+                    <TableCell className={cn("align-middle font-semibold", customer.balance < 0 ? 'text-destructive' : 'text-primary')}>
+                      {customer.balance < 0 
+                        ? `${Math.abs(customer.balance).toLocaleString('fa-IR')} بدهکار` 
+                        : `${customer.balance.toLocaleString('fa-IR')} اعتبار`}
                     </TableCell>
                     <TableCell className="align-middle">
-                      {customer.creditLimit.toLocaleString('fa-IR')} تومان
+                      {customer.creditLimit.toLocaleString('fa-IR')}
                     </TableCell>
                   </TableRow>
                 ))}
