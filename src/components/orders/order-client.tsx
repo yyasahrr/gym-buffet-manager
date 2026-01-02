@@ -40,7 +40,7 @@ function getItemCost(item: Product | Food): number {
 export default function OrderClient() {
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>(
-    customers.find(c => c.name === 'Walk-in Customer')?.id
+    customers.find(c => c.name === 'مشتری حضوری')?.id
   );
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { toast } = useToast();
@@ -164,7 +164,7 @@ export default function OrderClient() {
 
       <Card className="lg:sticky lg:top-20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-xl">
             <ShoppingCart className="h-5 w-5"/>
             سفارش فعلی
           </CardTitle>

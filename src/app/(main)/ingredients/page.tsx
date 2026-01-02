@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import { PlusCircle } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
@@ -22,10 +24,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from 'react';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 
 export default function IngredientsPage() {
+  const [currentDate, setCurrentDate] = useState('');
+
+  useEffect(() => {
+    setCurrentDate(new Date().toLocaleDateString('fa-IR'));
+  }, []);
+
   return (
     <div className="flex flex-col sm:gap-4 sm:py-4">
       <Header breadcrumbs={[]} activeBreadcrumb="مواد اولیه" />
@@ -75,7 +84,7 @@ export default function IngredientsPage() {
                                <Badge variant={ingredient.stock > 20 ? 'outline' : 'destructive'}>{ingredient.stock}</Badge>
                             </TableCell>
                             <TableCell className="hidden md:table-cell">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
-                            <TableCell className="hidden md:table-cell">{new Date().toLocaleDateString('fa-IR')}</TableCell>
+                            <TableCell className="hidden md:table-cell">{currentDate}</TableCell>
                         </TableRow>
                     )
                 })}
