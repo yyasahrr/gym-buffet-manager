@@ -1,5 +1,8 @@
+'use client';
+
+import { useState } from 'react';
 import { PlusCircle } from 'lucide-react';
-import { customers } from '@/lib/data';
+import { customers as initialCustomers, Customer } from '@/lib/data';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -21,23 +24,118 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CustomersPage() {
+  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newCustomerCredit, setNewCustomerCredit] = useState('');
+  const { toast } = useToast();
+
+  const handleAddCustomer = () => {
+    if (!newCustomerName || !newCustomerCredit) {
+      toast({
+        variant: "destructive",
+        title: "خطا",
+        description: "لطفاً تمام فیلدها را پر کنید.",
+      });
+      return;
+    }
+
+    const newCustomer: Customer = {
+      id: `cust-${Date.now()}`,
+      name: newCustomerName,
+      balance: 0,
+      creditLimit: parseInt(newCustomerCredit, 10),
+    };
+
+    setCustomers(prev => [...prev, newCustomer]);
+    toast({
+      title: "موفقیت‌آمیز",
+      description: `مشتری "${newCustomerName}" با موفقیت اضافه شد.`,
+    });
+
+    setNewCustomerName('');
+    setNewCustomerCredit('');
+  };
+
   return (
-    <>
+    <div className="flex flex-col h-full">
       <Header breadcrumbs={[]} activeBreadcrumb="مشتریان" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="مشتریان">
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" /> افزودن مشتری
-            </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="ml-2 h-4 w-4" /> افزودن مشتری
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>افزودن مشتری جدید</DialogTitle>
+                <DialogDescription>
+                  اطلاعات مشتری جدید را برای افزودن به لیست وارد کنید.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    نام
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    className="col-span-3"
+                    placeholder="مثال: علی رضایی"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="credit" className="text-right">
+                    سقف اعتبار
+                  </Label>
+                  <Input
+                    id="credit"
+                    type="number"
+                    value={newCustomerCredit}
+                    onChange={(e) => setNewCustomerCredit(e.target.value)}
+                    className="col-span-3"
+                    placeholder="مثال: 1000000"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="secondary">
+                    لغو
+                  </Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button type="submit" onClick={handleAddCustomer}>ذخیره مشتری</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </PageHeader>
         <Card>
-            <CardHeader>
-                <CardTitle>لیست مشتریان</CardTitle>
-                <CardDescription>مشتریان خود را مدیریت کرده و موجودی حسابشان را مشاهده کنید.</CardDescription>
-            </CardHeader>
+          <CardHeader>
+            <CardTitle>لیست مشتریان</CardTitle>
+            <CardDescription>
+              مشتریان خود را مدیریت کرده و موجودی حسابشان را مشاهده کنید.
+            </CardDescription>
+          </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
@@ -52,21 +150,26 @@ export default function CustomersPage() {
               </TableHeader>
               <TableBody>
                 {customers.map(customer => (
-                    <TableRow key={customer.id}>
-                        <TableCell className="hidden sm:table-cell align-middle">
-                             <Avatar>
-                                <AvatarImage src={`https://i.pravatar.cc/40?u=${customer.name}`} alt="Avatar" />
-                                <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                        </TableCell>
-                        <TableCell className="font-medium align-middle">{customer.name}</TableCell>
-                        <TableCell className="align-middle">
-                           <Badge variant={customer.balance >= 0 ? 'outline' : 'destructive'}>
-                               {customer.balance.toLocaleString('fa-IR')} تومان
-                           </Badge>
-                        </TableCell>
-                        <TableCell className="align-middle">{customer.creditLimit.toLocaleString('fa-IR')} تومان</TableCell>
-                    </TableRow>
+                  <TableRow key={customer.id}>
+                    <TableCell className="hidden sm:table-cell align-middle">
+                      <Avatar>
+                        <AvatarImage
+                          src={`https://i.pravatar.cc/40?u=${customer.name}`}
+                          alt="Avatar"
+                        />
+                        <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    </TableCell>
+                    <TableCell className="font-medium align-middle">{customer.name}</TableCell>
+                    <TableCell className="align-middle">
+                      <Badge variant={customer.balance >= 0 ? 'outline' : 'destructive'}>
+                        {customer.balance.toLocaleString('fa-IR')} تومان
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="align-middle">
+                      {customer.creditLimit.toLocaleString('fa-IR')} تومان
+                    </TableCell>
+                  </TableRow>
                 ))}
               </TableBody>
             </Table>
@@ -78,6 +181,6 @@ export default function CustomersPage() {
           </CardFooter>
         </Card>
       </main>
-    </>
+    </div>
   );
 }

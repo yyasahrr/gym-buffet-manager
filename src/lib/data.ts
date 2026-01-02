@@ -63,9 +63,9 @@ export const customers: Customer[] = [
 ];
 
 export const recentOrders: Order[] = [
-    { id: 'ord-1', customerName: 'علی رضایی', items: [{ item: foods[0], quantity: 1 }], total: 125000, createdAt: new Date(Date.now() - 3600000 * 1).toISOString() },
-    { id: 'ord-2', customerName: 'زهرا احمدی', items: [{ item: products[0], quantity: 1 }, { item: foods[2], quantity: 1 }], total: 585000, createdAt: new Date(Date.now() - 3600000 * 2).toISOString() },
-    { id: 'ord-3', customerName: 'محمد حسینی', items: [{ item: products[2], quantity: 2 }], total: 60000, createdAt: new Date(Date.now() - 3600000 * 3).toISOString() },
-    { id: 'ord-4', name: 'Diana Prince', customerName: 'مریم محمدی', items: [{ item: foods[1], quantity: 2 }], total: 200000, createdAt: new Date(Date.now() - 3600000 * 4).toISOString() },
-    { id: 'ord-5', customerName: 'پرهام صالحی', items: [{ item: products[3], quantity: 3 }], total: 75000, createdAt: new Date(Date.now() - 3600000 * 5).toISOString() },
+    { id: 'ord-1', customerName: 'علی رضایی', items: [{ item: foods[0], quantity: 1 }], total: 125000, createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-2', customerName: 'زهرا احمدی', items: [{ item: products[0], quantity: 1 }, { item: foods[2], quantity: 1 }], total: 585000, createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-3', customerName: 'محمد حسینی', items: [{ item: products[2], quantity: 2 }], total: 60000, createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), status: 'در انتظار پرداخت' },
+    { id: 'ord-4', customerName: 'مریم محمدی', items: [{ item: foods[1], quantity: 2 }], total: 200000, createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-5', customerName: 'پرهام صالحی', items: [{ item: products[3], quantity: 3 }], total: 75000, createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), status: 'پرداخت شده' },
 ];

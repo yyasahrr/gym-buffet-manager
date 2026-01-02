@@ -11,13 +11,12 @@ import { Header } from '@/components/header';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { OverviewChart } from '@/components/dashboard/overview-chart';
 import { RecentSales } from '@/components/dashboard/recent-sales';
-import ReportClient from '@/components/reports/report-client';
 
 export default function DashboardPage() {
   return (
-    <>
+    <div className="flex flex-col h-full">
       <Header breadcrumbs={[]} activeBreadcrumb="داشبورد" />
-      <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-6 md:gap-8">
+      <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           <StatCard
             title="درآمد کل"
@@ -44,7 +43,7 @@ export default function DashboardPage() {
             description="در این ماه"
           />
         </div>
-        <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader>
               <CardTitle>نمای کلی</CardTitle>
@@ -65,18 +64,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
-            <CardHeader>
-              <CardTitle>گزارش مصرف</CardTitle>
-              <CardDescription>
-                یک گزارش مبتنی بر هوش مصنوعی برای تحلیل داده‌های تاریخی و پیش‌بینی مصرف غذا ایجاد کنید.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ReportClient />
-            </CardContent>
-          </Card>
       </main>
-    </>
+    </div>
   );
 }

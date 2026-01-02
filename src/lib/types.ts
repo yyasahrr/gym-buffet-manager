@@ -39,6 +39,7 @@ export type Order = {
   total: number;
   customerName: string;
   createdAt: string;
+  status: 'پرداخت شده' | 'در انتظار پرداخت';
 };
 
 export type Customer = {
