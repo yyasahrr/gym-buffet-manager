@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Plus, Minus, Trash2, ShoppingCart, Loader2, User } from 'lucide-react';
-import type { Order, OrderItem, Product, Food, Customer, Ingredient } from '@/lib/types';
+import type { Order, OrderItem, Product, Food, Customer, Ingredient, CustomerTransaction } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { canFulfillOrderItem, fulfillOrder } from '@/lib/inventory';
 import { useAppData, dataStore } from '@/lib/store';
@@ -23,34 +23,62 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '../ui/label';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 
+type PaymentMethod = 'cash' | 'customer_account';
+
 export default function OrderClient() {
-  const { customers, products, foods, ingredients, orders } = useAppData();
+  const { customers, products, foods, ingredients, orders, customerTransactions } = useAppData();
   const [cart, setCart] = useState<OrderItem[]>([]);
   
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>();
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
 
+  const activeCustomers = useMemo(() => customers.filter(c => c.status === 'active'), [customers]);
+
   useEffect(() => {
-    if (customers.length > 0 && !selectedCustomerId) {
-        const defaultCustomer = customers.find((c: Customer) => c.name === 'مشتری حضوری');
+    if (activeCustomers.length > 0 && !selectedCustomerId) {
+        const defaultCustomer = activeCustomers.find((c: Customer) => c.name === 'مشتری حضوری');
         if (defaultCustomer) {
-        setSelectedCustomerId(defaultCustomer.id);
+            setSelectedCustomerId(defaultCustomer.id);
         } else {
-        setSelectedCustomerId(customers[0].id);
+            setSelectedCustomerId(activeCustomers[0].id);
         }
     }
-  }, [customers, selectedCustomerId]);
+  }, [activeCustomers, selectedCustomerId]);
 
-  const ingredientMap = useMemo(() => new Map(ingredients.map(i => [i.id, i])), [ingredients]);
+  useEffect(() => {
+    const customer = activeCustomers.find(c => c.id === selectedCustomerId);
+    if (customer?.name === 'مشتری حضوری') {
+        setPaymentMethod('cash');
+    }
+  }, [selectedCustomerId, activeCustomers]);
+
+  const customerBalances = useMemo(() => {
+    const balances = new Map<string, number>();
+    customers.forEach(c => balances.set(c.id, 0));
+    customerTransactions.forEach(t => {
+        const currentBalance = balances.get(t.customerId) || 0;
+        const newBalance = t.type === 'credit' ? currentBalance + t.amount : currentBalance - t.amount;
+        balances.set(t.customerId, newBalance);
+    });
+    return balances;
+  }, [customers, customerTransactions]);
 
   const selectedCustomer = useMemo(() => {
-    return customers.find(c => c.id === selectedCustomerId);
-  }, [selectedCustomerId, customers]);
+    return activeCustomers.find(c => c.id === selectedCustomerId);
+  }, [selectedCustomerId, activeCustomers]);
+
+  const selectedCustomerBalance = useMemo(() => {
+      if (!selectedCustomer) return 0;
+      return customerBalances.get(selectedCustomer.id) || 0;
+  }, [selectedCustomer, customerBalances]);
+
 
   const addToCart = (item: Product | Food) => {
     const currentInventory = {
@@ -118,28 +146,25 @@ export default function OrderClient() {
   }, [cart]);
   
   const newBalance = useMemo(() => {
-    if (!selectedCustomer || selectedCustomer.name === 'مشتری حضوری') {
+    if (!selectedCustomer || paymentMethod !== 'customer_account') {
       return null;
     }
-    return selectedCustomer.balance - cartTotal;
-  }, [selectedCustomer, cartTotal]);
+    return selectedCustomerBalance - cartTotal;
+  }, [selectedCustomer, selectedCustomerBalance, cartTotal, paymentMethod]);
 
   const handleCheckout = () => {
     if (cart.length === 0) {
-        toast({
-            variant: "destructive",
-            title: "سبد خرید خالی",
-            description: "نمی‌توان با سبد خرید خالی تسویه حساب کرد.",
-        });
+        toast({ variant: "destructive", title: "سبد خرید خالی" });
         return;
     }
-    
     if (!selectedCustomer) {
-        toast({
-            variant: "destructive",
-            title: "مشتری انتخاب نشده",
-            description: "لطفاً یک مشتری را برای ثبت سفارش انتخاب کنید.",
-        });
+        toast({ variant: "destructive", title: "مشتری انتخاب نشده" });
+        return;
+    }
+
+    if (paymentMethod === 'customer_account' && newBalance !== null && newBalance < 0 && Math.abs(newBalance) > 500000) { // Example credit limit
+        // a real app might have credit limit per customer
+        toast({ variant: "destructive", title: "اعتبار ناکافی", description: "مانده حساب مشتری برای این تراکنش کافی نیست." });
         return;
     }
 
@@ -150,30 +175,35 @@ export default function OrderClient() {
         const { updatedProducts, updatedIngredients, success } = fulfillOrder(cart, currentInventory);
 
         if (!success) {
-            toast({
-                variant: "destructive",
-                title: "خطای داخلی",
-                description: "موجودی برای تکمیل سفارش کافی نیست. لطفاً سبد خرید را بازبینی کنید.",
-            });
+            toast({ variant: "destructive", title: "خطای داخلی", description: "موجودی برای تکمیل سفارش کافی نیست." });
             setIsCheckingOut(false);
             return;
         }
         
-        let finalCustomers = [...customers];
-        if (selectedCustomer && newBalance !== null) {
-          finalCustomers = customers.map(c => 
-            c.id === selectedCustomer.id ? {...c, balance: newBalance} : c
-          );
+        let updatedCustomerTransactions = [...customerTransactions];
+        const newOrderId = `ord-${Date.now()}`;
+
+        if (paymentMethod === 'customer_account') {
+            const newTransaction: CustomerTransaction = {
+                id: `trx-${Date.now()}`,
+                customerId: selectedCustomer.id,
+                date: new Date().toISOString(),
+                type: 'debit',
+                amount: cartTotal,
+                description: `پرداخت سفارش #${newOrderId.substring(4)}`,
+                orderId: newOrderId
+            };
+            updatedCustomerTransactions.push(newTransaction);
         }
 
         const newOrder: Order = {
-            id: `ord-${Date.now()}`,
+            id: newOrderId,
             customerId: selectedCustomer.id,
             customerName: selectedCustomer.name,
             items: cart,
             total: cartTotal,
             createdAt: new Date().toISOString(),
-            status: selectedCustomer.name === 'مشتری حضوری' || newBalance === null ? 'پرداخت شده' : 'در انتظار پرداخت',
+            status: 'پرداخت شده',
         }
 
         const updatedOrders = [...orders, newOrder];
@@ -181,7 +211,7 @@ export default function OrderClient() {
         dataStore.saveData({
           products: updatedProducts,
           ingredients: updatedIngredients,
-          customers: finalCustomers,
+          customerTransactions: updatedCustomerTransactions,
           orders: updatedOrders,
         });
     
@@ -191,7 +221,7 @@ export default function OrderClient() {
         });
         setCart([]);
         setIsCheckingOut(false);
-    }, 1500);
+    }, 500);
   }
 
   const activeFoods = useMemo(() => foods.filter(f => f.status === 'active'), [foods]);
@@ -240,7 +270,7 @@ export default function OrderClient() {
           >
             <CardContent className="p-0">
                 <div className="aspect-square relative">
-                    {image && <Image src={item.imageDataUrl || image.imageUrl} alt={item.name} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={image.imageHint}/>}
+                    {image && <Image src={(item as Food).imageDataUrl || image.imageUrl} alt={item.name} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={image.imageHint}/>}
                     {!isAvailable && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <p className="text-white font-bold text-lg">ناموجود</p>
@@ -303,7 +333,7 @@ export default function OrderClient() {
                 </div>
               </SelectTrigger>
               <SelectContent>
-                {customers.map(customer => (
+                {activeCustomers.map(customer => (
                   <SelectItem key={customer.id} value={customer.id}>
                     {customer.name}
                   </SelectItem>
@@ -357,27 +387,57 @@ export default function OrderClient() {
         {cart.length > 0 && (
             <CardFooter className="flex flex-col gap-4 mt-4 px-6">
                 <Separator />
-                {selectedCustomer && selectedCustomer.name !== 'مشتری حضوری' && newBalance !== null && (
-                <div className="w-full space-y-2 text-sm">
+                
+                <div className="w-full space-y-3">
+                    <Label>نحوه پرداخت</Label>
+                    <RadioGroup
+                        value={paymentMethod}
+                        onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
+                        className="grid grid-cols-2 gap-4"
+                        disabled={isCheckingOut}
+                    >
+                        <div>
+                            <RadioGroupItem value="cash" id="cash" className="peer sr-only" />
+                            <Label
+                                htmlFor="cash"
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                            >
+                                نقدی/کارت
+                            </Label>
+                        </div>
+                        <div>
+                            <RadioGroupItem value="customer_account" id="customer_account" className="peer sr-only" disabled={selectedCustomer?.name === 'مشتری حضوری'} />
+                            <Label
+                                htmlFor="customer_account"
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
+                            >
+                                از حساب مشتری
+                            </Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+
+                {paymentMethod === 'customer_account' && newBalance !== null && (
+                <div className="w-full space-y-2 text-sm pt-2">
                     <div className="flex justify-between">
-                    <span className="text-muted-foreground">موجودی فعلی</span>
-                    <span className={cn(selectedCustomer.balance < 0 && 'text-destructive')}>{selectedCustomer.balance.toLocaleString('fa-IR')} تومان</span>
+                        <span className="text-muted-foreground">موجودی فعلی</span>
+                        <span className={cn(selectedCustomerBalance < 0 && 'text-destructive')}>{selectedCustomerBalance.toLocaleString('fa-IR')} تومان</span>
                     </div>
                     <div className="flex justify-between">
-                    <span className="text-muted-foreground">مجموع سفارش</span>
-                    <span>-{cartTotal.toLocaleString('fa-IR')} تومان</span>
+                        <span className="text-muted-foreground">مجموع سفارش</span>
+                        <span>-{cartTotal.toLocaleString('fa-IR')} تومان</span>
                     </div>
                     <Separator/>
                     <div className="flex justify-between font-semibold text-base">
-                    <span className="text-muted-foreground">موجودی جدید</span>
-                    <span className={cn(newBalance < 0 && 'text-destructive')}>
-                        {newBalance.toLocaleString('fa-IR')} تومان
-                    </span>
+                        <span className="text-muted-foreground">موجودی جدید</span>
+                        <span className={cn(newBalance < 0 && 'text-destructive')}>
+                            {newBalance.toLocaleString('fa-IR')} تومان
+                        </span>
                     </div>
                 </div>
                 )}
 
-                <div className="w-full flex justify-between text-lg font-semibold">
+                <div className="w-full flex justify-between text-lg font-semibold pt-2">
                     <span>مجموع</span>
                     <span>{cartTotal.toLocaleString('fa-IR')} تومان</span>
                 </div>

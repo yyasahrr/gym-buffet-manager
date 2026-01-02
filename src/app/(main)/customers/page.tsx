@@ -1,270 +1,276 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { PlusCircle, Wallet } from 'lucide-react';
-import { Customer } from '@/lib/types';
+import { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Archive, ArchiveRestore, Info } from 'lucide-react';
+import { Customer, Order, CustomerTransaction } from '@/lib/types';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAppData, dataStore } from '@/lib/store';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+
+type DialogState = {
+  isOpen: boolean;
+  mode: 'add' | 'edit';
+  customer: Customer | null;
+};
 
 export default function CustomersPage() {
-  const { customers } = useAppData();
+  const { customers, orders, customerTransactions } = useAppData();
   const [searchQuery, setSearchQuery] = useState('');
-  const [newCustomerName, setNewCustomerName] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  
-  const [isChargeDialogOpen, setIsChargeDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [chargeAmount, setChargeAmount] = useState('');
-  
+  const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, mode: 'add', customer: null });
+  const [formData, setFormData] = useState({ name: '' });
   const { toast } = useToast();
-  
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('active');
+
+  const customerBalances = useMemo(() => {
+    const balances = new Map<string, number>();
+    customers.forEach(c => balances.set(c.id, 0));
+    customerTransactions.forEach(t => {
+      const currentBalance = balances.get(t.customerId) || 0;
+      const newBalance = t.type === 'credit' ? currentBalance + t.amount : currentBalance - t.amount;
+      balances.set(t.customerId, newBalance);
+    });
+    return balances;
+  }, [customers, customerTransactions]);
+
   const filteredCustomers = useMemo(() => {
     return customers.filter(customer =>
-        customer.name.toLowerCase().includes(searchQuery.toLowerCase())
+      customer.status === activeTab &&
+      customer.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [customers, searchQuery]);
+  }, [customers, searchQuery, activeTab]);
 
-  const handleAddCustomer = () => {
-    if (!newCustomerName) {
-      toast({
-        variant: "destructive",
-        title: "خطا",
-        description: "لطفاً نام مشتری را پر کنید.",
-      });
+  const openDialog = (mode: 'add' | 'edit', customer: Customer | null = null) => {
+    setDialogState({ isOpen: true, mode, customer });
+    if (mode === 'edit' && customer) {
+      setFormData({ name: customer.name });
+    } else {
+      setFormData({ name: '' });
+    }
+  };
+
+  const closeDialog = () => {
+    setDialogState({ isOpen: false, mode: 'add', customer: null });
+  };
+
+  const handleSaveCustomer = () => {
+    const { name } = formData;
+    if (!name) {
+      toast({ variant: 'destructive', title: 'خطا', description: 'لطفاً نام مشتری را پر کنید.' });
       return;
     }
 
-    const newCustomer: Customer = {
-      id: `cust-${Date.now()}`,
-      name: newCustomerName,
-      balance: 0,
-    };
-
-    const updatedCustomers = [...customers, newCustomer];
-    dataStore.saveData({ customers: updatedCustomers });
-    
-    toast({
-      title: "موفقیت‌آمیز",
-      description: `مشتری "${newCustomerName}" با موفقیت اضافه شد.`,
-    });
-
-    setNewCustomerName('');
-    setIsAddDialogOpen(false);
-  };
-  
-  const openChargeDialog = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setChargeAmount('');
-    setIsChargeDialogOpen(true);
-  };
-
-  const handleChargeCredit = () => {
-    if (!selectedCustomer || !chargeAmount || parseInt(chargeAmount) <= 0) {
-      toast({
-        variant: "destructive",
-        title: "خطا",
-        description: "لطفاً مبلغ معتبری را وارد کنید.",
-      });
-      return;
+    if (dialogState.mode === 'add') {
+      const newCustomer: Customer = {
+        id: `cust-${Date.now()}`,
+        name,
+        status: 'active',
+      };
+      const updatedCustomers = [...customers, newCustomer];
+      dataStore.saveData({ customers: updatedCustomers });
+      toast({ title: 'موفقیت‌آمیز', description: `مشتری "${name}" با موفقیت اضافه شد.` });
+    } else if (dialogState.mode === 'edit' && dialogState.customer) {
+      const updatedCustomers = customers.map(c =>
+        c.id === dialogState.customer!.id ? { ...c, name } : c
+      );
+      dataStore.saveData({ customers: updatedCustomers });
+      toast({ title: 'موفقیت‌آمیز', description: `مشتری "${name}" با موفقیت ویرایش شد.` });
     }
-    
-    const amount = parseInt(chargeAmount, 10);
-    const updatedCustomers = customers.map(c => 
-      c.id === selectedCustomer.id 
-        ? { ...c, balance: c.balance + amount }
-        : c
-    );
-    
-    dataStore.saveData({ customers: updatedCustomers });
-    
-    toast({
-      title: "موفقیت‌آمیز",
-      description: `حساب ${selectedCustomer.name} به مبلغ ${amount.toLocaleString('fa-IR')} تومان شارژ شد.`,
-    });
-    
-    setIsChargeDialogOpen(false);
-    setSelectedCustomer(null);
+
+    closeDialog();
   };
 
+  const handleArchive = (customerId: string) => {
+    const updatedCustomers = customers.map(c => c.id === customerId ? { ...c, status: 'archived' } : c);
+    dataStore.saveData({ customers: updatedCustomers });
+    toast({ title: 'مشتری بایگانی شد' });
+    setOpenMenuId(null);
+  };
+
+  const handleRestore = (customerId: string) => {
+    const updatedCustomers = customers.map(c => c.id === customerId ? { ...c, status: 'active' } : c);
+    dataStore.saveData({ customers: updatedCustomers });
+    toast({ title: 'مشتری بازیابی شد' });
+    setOpenMenuId(null);
+  };
+
+  const handleDelete = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    if (!customer) return;
+
+    const hasOrderHistory = orders.some(order => order.customerId === customerId);
+    const hasTransactionHistory = customerTransactions.some(t => t.customerId === customerId);
+
+    if (hasOrderHistory || hasTransactionHistory) {
+      toast({
+        variant: 'destructive',
+        title: 'حذف امکان‌پذیر نیست',
+        description: 'این مشتری دارای سابقه سفارش یا تراکنش است. لطفاً ابتدا آن را بایگانی کنید.',
+      });
+    } else {
+      const updatedCustomers = customers.filter(c => c.id !== customerId);
+      dataStore.saveData({ customers: updatedCustomers });
+      toast({ title: 'مشتری برای همیشه حذف شد' });
+    }
+    setOpenMenuId(null);
+  };
+
+  const renderTable = (customerList: Customer[]) => (
+    <Card>
+      <CardHeader>
+        <CardTitle>{activeTab === 'active' ? 'لیست مشتریان فعال' : 'لیست مشتریان بایگانی شده'}</CardTitle>
+        <CardDescription>
+          {activeTab === 'active' ? 'مشتریان خود را مدیریت کرده و موجودی حسابشان را مشاهده کنید.' : 'این مشتریان در صفحه سفارش نمایش داده نمی‌شوند.'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="hidden w-[64px] sm:table-cell">
+                <span className="sr-only">تصویر</span>
+              </TableHead>
+              <TableHead>نام</TableHead>
+              <TableHead>وضعیت حساب (تومان)</TableHead>
+              <TableHead>
+                <span className="sr-only">عملیات</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {customerList.map(customer => {
+              const balance = customerBalances.get(customer.id) || 0;
+              return (
+                <TableRow key={customer.id}>
+                  <TableCell className="hidden sm:table-cell align-middle">
+                    <Avatar>
+                      <AvatarImage src={`https://i.pravatar.cc/40?u=${customer.name}`} alt="Avatar" />
+                      <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  </TableCell>
+                  <TableCell className="font-medium align-middle">{customer.name}</TableCell>
+                  <TableCell className={cn('align-middle font-semibold', balance < 0 ? 'text-destructive' : 'text-primary')}>
+                    {balance < 0 ? `${Math.abs(balance).toLocaleString('fa-IR')} بدهکار` : `${balance.toLocaleString('fa-IR')} اعتبار`}
+                  </TableCell>
+                  <TableCell className="text-left">
+                    {customer.name !== 'مشتری حضوری' && (
+                      <DropdownMenu open={openMenuId === customer.id} onOpenChange={(isOpen) => setOpenMenuId(isOpen ? customer.id : null)}>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">باز کردن منو</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {customer.status === 'active' ? (
+                            <>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/customers/${customer.id}`}><Info className="ml-2 h-4 w-4" /> جزئیات</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openDialog('edit', customer)}><Pencil className="ml-2 h-4 w-4" /> ویرایش</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleArchive(customer.id)}><Archive className="ml-2 h-4 w-4" /> بایگانی</DropdownMenuItem>
+                            </>
+                          ) : (
+                            <>
+                              <DropdownMenuItem onClick={() => handleRestore(customer.id)}><ArchiveRestore className="ml-2 h-4 w-4" /> بازیابی</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                    <Trash2 className="ml-2 h-4 w-4" /> حذف دائمی
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>آیا مطمئن هستید؟</AlertDialogTitle>
+                                    <AlertDialogDescription>این عمل غیرقابل بازگشت است. فقط در صورتی ادامه دهید که مشتری هیچ سابقه تراکنش یا سفارشی نداشته باشد.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>لغو</AlertDialogCancel>
+                                    <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(customer.id)}>تایید و حذف دائمی</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+      <CardFooter>
+        <div className="text-xs text-muted-foreground">
+          نمایش <strong>{filteredCustomers.length}</strong> از <strong>{customers.filter(c => c.status === activeTab).length}</strong> مشتری
+        </div>
+      </CardFooter>
+    </Card>
+  );
 
   return (
     <div className="flex flex-col h-full">
       <Header onSearch={setSearchQuery} breadcrumbs={[]} activeBreadcrumb="مشتریان" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="مشتریان">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={dialogState.isOpen} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => openDialog('add')}>
                 <PlusCircle className="ml-2 h-4 w-4" /> افزودن مشتری
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>افزودن مشتری جدید</DialogTitle>
-                <DialogDescription>
-                  اطلاعات مشتری جدید را برای افزودن به لیست وارد کنید.
-                </DialogDescription>
+                <DialogTitle>{dialogState.mode === 'add' ? 'افزودن مشتری جدید' : 'ویرایش مشتری'}</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    نام
-                  </Label>
+                  <Label htmlFor="name" className="text-right">نام</Label>
                   <Input
                     id="name"
-                    value={newCustomerName}
-                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ name: e.target.value })}
                     className="col-span-3"
                     placeholder="مثال: علی رضایی"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setIsAddDialogOpen(false)}>
-                    لغو
-                </Button>
-                <Button type="submit" onClick={handleAddCustomer}>ذخیره مشتری</Button>
+                <Button type="button" variant="secondary" onClick={closeDialog}>لغو</Button>
+                <Button type="submit" onClick={handleSaveCustomer}>ذخیره</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </PageHeader>
-        <Card>
-          <CardHeader>
-            <CardTitle>لیست مشتریان</CardTitle>
-            <CardDescription>
-              مشتریان خود را مدیریت کرده و موجودی حسابشان را مشاهده کنید.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="hidden w-[64px] sm:table-cell">
-                    <span className="sr-only">تصویر</span>
-                  </TableHead>
-                  <TableHead>نام</TableHead>
-                  <TableHead>وضعیت حساب (تومان)</TableHead>
-                  <TableHead>
-                    <span className="sr-only">عملیات</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCustomers.map(customer => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="hidden sm:table-cell align-middle">
-                      <Avatar>
-                        <AvatarImage
-                          src={`https://i.pravatar.cc/40?u=${customer.name}`}
-                          alt="Avatar"
-                        />
-                        <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                    </TableCell>
-                    <TableCell className="font-medium align-middle">{customer.name}</TableCell>
-                    <TableCell className={cn("align-middle font-semibold", customer.balance < 0 ? 'text-destructive' : 'text-primary')}>
-                      {customer.balance < 0 
-                        ? `${Math.abs(customer.balance).toLocaleString('fa-IR')} بدهکار` 
-                        : `${customer.balance.toLocaleString('fa-IR')} اعتبار`}
-                    </TableCell>
-                    <TableCell className="align-middle text-left">
-                       {customer.name !== 'مشتری حضوری' && (
-                        <Button variant="outline" size="sm" onClick={() => openChargeDialog(customer)}>
-                            <Wallet className="ml-2 h-4 w-4" />
-                            شارژ حساب
-                        </Button>
-                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-          <CardFooter>
-            <div className="text-xs text-muted-foreground">
-              نمایش <strong>{filteredCustomers.length}</strong> از <strong>{customers.length}</strong> مشتری
-            </div>
-          </CardFooter>
-        </Card>
-
-        {/* Charge Credit Dialog */}
-        <Dialog open={isChargeDialogOpen} onOpenChange={setIsChargeDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>شارژ حساب مشتری</DialogTitle>
-                    <DialogDescription>
-                        مبلغ مورد نظر برای افزایش اعتبار {selectedCustomer?.name} را وارد کنید.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="charge-amount" className="text-right">
-                            مبلغ شارژ (تومان)
-                        </Label>
-                        <Input
-                            id="charge-amount"
-                            type="number"
-                            value={chargeAmount}
-                            onChange={(e) => setChargeAmount(e.target.value)}
-                            className="col-span-3"
-                            placeholder="مثال: 500000"
-                        />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">موجودی فعلی</Label>
-                        <div className={cn("col-span-3 font-semibold", selectedCustomer && selectedCustomer.balance < 0 ? 'text-destructive' : 'text-primary')}>
-                          {selectedCustomer?.balance.toLocaleString('fa-IR')} تومان
-                        </div>
-                    </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">موجودی جدید</Label>
-                        <div className="col-span-3 font-bold text-lg">
-                          {((selectedCustomer?.balance || 0) + (parseInt(chargeAmount) || 0)).toLocaleString('fa-IR')} تومان
-                        </div>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="secondary" onClick={() => setIsChargeDialogOpen(false)}>
-                        لغو
-                    </Button>
-                    <Button type="submit" onClick={handleChargeCredit}>تایید و شارژ</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="active">فعال</TabsTrigger>
+            <TabsTrigger value="archived">بایگانی</TabsTrigger>
+          </TabsList>
+          <TabsContent value="active">
+            {renderTable(filteredCustomers)}
+          </TabsContent>
+          <TabsContent value="archived">
+            {renderTable(filteredCustomers)}
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

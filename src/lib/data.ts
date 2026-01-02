@@ -1,4 +1,4 @@
-import type { Product, Ingredient, Food, Order, Customer, Expense, Purchase } from './types';
+import type { Product, Ingredient, Food, Order, Customer, Expense, Purchase, CustomerTransaction } from './types';
 
 // IMPORTANT: This file is now used only for INITIAL data seeding.
 // All subsequent data is managed via localStorage in the respective pages.
@@ -62,18 +62,26 @@ export const foods: Food[] = [
 ];
 
 export const customers: Customer[] = [
-    { id: 'cust-1', name: 'علی رضایی', balance: 500000 },
-    { id: 'cust-2', name: 'زهرا احمدی', balance: -120500 },
-    { id: 'cust-3', name: 'محمد حسینی', balance: 0 },
-    { id: 'cust-4', name: 'مشتری حضوری', balance: 0 },
+    { id: 'cust-1', name: 'علی رضایی', status: 'active' },
+    { id: 'cust-2', name: 'زهرا احمدی', status: 'active' },
+    { id: 'cust-3', name: 'محمد حسینی', status: 'archived' },
+    { id: 'cust-4', name: 'مشتری حضوری', status: 'active' },
+];
+
+export const customerTransactions: CustomerTransaction[] = [
+    { id: 'trx-1', customerId: 'cust-1', date: new Date(Date.now() - 3600000 * 24 * 5).toISOString(), type: 'credit', amount: 1000000, description: 'شارژ اولیه' },
+    { id: 'trx-2', customerId: 'cust-1', date: new Date(Date.now() - 3600000 * 24 * 2).toISOString(), type: 'debit', amount: 125000, description: 'خرید سفارش', orderId: 'ord-1' },
+    { id: 'trx-3', customerId: 'cust-1', date: new Date(Date.now() - 3600000 * 24 * 1).toISOString(), type: 'debit', amount: 75000, description: 'خرید سفارش', orderId: 'ord-5' },
+    { id: 'trx-4', customerId: 'cust-2', date: new Date(Date.now() - 3600000 * 24 * 4).toISOString(), type: 'credit', amount: 500000, description: 'شارژ اولیه' },
+    { id: 'trx-5', customerId: 'cust-2', date: new Date(Date.now() - 3600000 * 24 * 3).toISOString(), type: 'debit', amount: 585000, description: 'خرید سفارش', orderId: 'ord-2' },
 ];
 
 export const recentOrders: Order[] = [
-    { id: 'ord-1', customerName: 'علی رضایی', customerId: 'cust-1', items: [{ item: foods[0], quantity: 1 }], total: 125000, createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), status: 'پرداخت شده' },
-    { id: 'ord-2', customerName: 'زهرا احمدی', customerId: 'cust-2', items: [{ item: products[0], quantity: 1 }, { item: foods[2], quantity: 1 }], total: 585000, createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), status: 'پرداخت شده' },
-    { id: 'ord-3', customerName: 'محمد حسینی', customerId: 'cust-3', items: [{ item: products[2], quantity: 2 }], total: 60000, createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), status: 'در انتظار پرداخت' },
+    { id: 'ord-1', customerName: 'علی رضایی', customerId: 'cust-1', items: [{ item: foods[0], quantity: 1 }], total: 125000, createdAt: new Date(Date.now() - 3600000 * 24 * 2).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-2', customerName: 'زهرا احمدی', customerId: 'cust-2', items: [{ item: products[0], quantity: 1 }, { item: foods[2], quantity: 1 }], total: 585000, createdAt: new Date(Date.now() - 3600000 * 24 * 3).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-3', customerName: 'محمد حسینی', customerId: 'cust-3', items: [{ item: products[2], quantity: 2 }], total: 60000, createdAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(), status: 'پرداخت شده' },
     { id: 'ord-4', customerName: 'مشتری حضوری', customerId: 'cust-4', items: [{ item: foods[1], quantity: 2 }], total: 200000, createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), status: 'پرداخت شده' },
-    { id: 'ord-5', customerName: 'علی رضایی', customerId: 'cust-1', items: [{ item: products[3], quantity: 3 }], total: 75000, createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-5', customerName: 'علی رضایی', customerId: 'cust-1', items: [{ item: products[3], quantity: 3 }], total: 75000, createdAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(), status: 'پرداخت شده' },
 ];
 
 export const expenses: Expense[] = [];

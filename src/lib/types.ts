@@ -61,8 +61,18 @@ export type Order = {
 export type Customer = {
   id: string;
   name: string;
-  balance: number; // Positive is credit, negative is debt
+  status: 'active' | 'archived';
 };
+
+export type CustomerTransaction = {
+    id: string;
+    customerId: string;
+    date: string;
+    type: 'credit' | 'debit';
+    amount: number;
+    description: string;
+    orderId?: string;
+}
 
 export type Expense = {
     id: string;
@@ -95,6 +105,7 @@ export type AppData = {
   ingredients: Ingredient[];
   foods: Food[];
   customers: Customer[];
+  customerTransactions: CustomerTransaction[];
   orders: Order[];
   purchases: Purchase[];
   manualExpenses: Expense[];
