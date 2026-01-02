@@ -81,6 +81,7 @@ export default function IngredientsPage() {
     
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -188,6 +189,7 @@ export default function IngredientsPage() {
                 description: `"${ingredient.name}" برای همیشه حذف شد.`,
             });
         }
+        setOpenMenuId(null);
     };
 
 
@@ -250,7 +252,7 @@ export default function IngredientsPage() {
                                                 {ingredient.avgBuyPrice > 0 ? `${Math.round(ingredient.avgBuyPrice).toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}
                                             </TableCell>
                                             <TableCell className="text-left">
-                                                <DropdownMenu>
+                                                <DropdownMenu open={openMenuId === ingredient.id} onOpenChange={(isOpen) => setOpenMenuId(isOpen ? ingredient.id : null)}>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" className="h-8 w-8 p-0">
                                                             <span className="sr-only">باز کردن منو</span>
