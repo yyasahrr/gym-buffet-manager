@@ -61,6 +61,7 @@ export type Order = {
   id: string;
   items: OrderItem[];
   total: number;
+  totalCost: number; // Cost of goods sold for this order
   customerName: string;
   customerId: string;
   createdAt: string;

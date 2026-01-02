@@ -11,7 +11,7 @@ import {
     expenses as initialExpenses 
 } from './data';
 
-const STORE_VERSION = '1.3'; // Version for the single-object store with waste
+const STORE_VERSION = '1.4'; // Version with Order.totalCost
 const VERSION_KEY = 'gym-canteen-version';
 const DATA_KEY = 'gym-canteen-app-data';
 
@@ -72,7 +72,17 @@ function normalizeData(data: any): AppData {
     })).filter((c: Customer | null) => c);
 
     normalized.customerTransactions = (data.customerTransactions || []).filter((ct: CustomerTransaction | null) => ct);
-    normalized.orders = (data.orders || []).filter((o: Order | null) => o);
+    
+    normalized.orders = (data.orders || []).map((o: Partial<Order>): Order => ({
+      id: o.id || `order-${Date.now()}`,
+      items: o.items || [],
+      total: o.total || 0,
+      totalCost: o.totalCost || 0, // Add default for new field
+      customerName: o.customerName || 'مشتری نامشخص',
+      customerId: o.customerId || '',
+      createdAt: o.createdAt || new Date().toISOString(),
+      status: o.status || 'پرداخت شده'
+    })).filter((o: Order | null) => o);
     
     normalized.purchases = (data.purchases || []).map((p: Partial<Purchase>): Purchase => ({
         id: p.id || `pur-${Date.now()}`,

@@ -1,6 +1,6 @@
 'use client';
 
-import { DollarSign, Package, Users, UtensilsCrossed, Trash2 } from 'lucide-react';
+import { DollarSign, Package, TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -13,47 +13,28 @@ import { Header } from '@/components/header';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { OverviewChart } from '@/components/dashboard/overview-chart';
 import { RecentSales } from '@/components/dashboard/recent-sales';
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BestSellers } from '@/components/dashboard/best-sellers';
 import { useAppData } from '@/lib/store';
 import { Skeleton } from '@/components/ui/skeleton';
+import { calculateMetrics, type Metrics } from '@/lib/metrics';
 
 
 export default function DashboardPage() {
-    const { orders, products, ingredients, waste } = useAppData();
+    const appData = useAppData();
     const [isClient, setIsClient] = useState(false);
+    const [metrics, setMetrics] = useState<Metrics>(calculateMetrics(appData));
 
     useEffect(() => {
         setIsClient(true);
     }, []);
-    
-    const totalRevenue = useMemo(() => {
-        if (!orders) return 0;
-        return orders.reduce((sum, order) => sum + order.total, 0);
-    }, [orders]);
-    
-    const totalSales = useMemo(() => {
-        if (!orders) return 0;
-        return orders.length;
-    }, [orders]);
 
-    const inventoryValue = useMemo(() => {
-        let currentInventoryValue = 0;
-        if (products) {
-            currentInventoryValue += products.reduce((sum, product) => sum + (product.stock * product.avgBuyPrice), 0);
+    useEffect(() => {
+        if (isClient) {
+            setMetrics(calculateMetrics(appData));
         }
-        if (ingredients) {
-            currentInventoryValue += ingredients.reduce((sum, ingredient) => sum + (ingredient.stock * ingredient.avgBuyPrice), 0);
-        }
-        return currentInventoryValue;
-    }, [products, ingredients]);
-
-    const wasteValue = useMemo(() => {
-        if (!waste) return 0;
-        return waste.reduce((sum, record) => sum + record.cost, 0);
-    }, [waste]);
+    }, [appData, isClient]);
     
-
     if (!isClient) {
         return (
             <div className="flex flex-col h-full">
@@ -99,27 +80,27 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           <StatCard
             title="درآمد کل"
-            value={`${(totalRevenue ?? 0).toLocaleString('fa-IR')} تومان`}
+            value={`${(metrics.totalRevenue ?? 0).toLocaleString('fa-IR')} تومان`}
             icon={DollarSign}
-            description={`${(totalSales ?? 0).toLocaleString('fa-IR')} فروش`}
+            description={`${(metrics.totalSales ?? 0).toLocaleString('fa-IR')} فروش`}
           />
           <StatCard
-            title="سود کل (نمایشی)"
-            value="۱۲,۸۷۴,۲۱۰ تومان"
-            icon={DollarSign}
-            description="در حال حاضر ثابت است"
+            title="سود ناخالص"
+            value={`${(metrics.grossProfit ?? 0).toLocaleString('fa-IR')} تومان`}
+            icon={TrendingUp}
+            description="درآمد منهای هزینه اولیه کالا"
+          />
+           <StatCard
+            title="سود خالص"
+            value={`${(metrics.netProfit ?? 0).toLocaleString('fa-IR')} تومان`}
+            icon={TrendingUp}
+            description="سود ناخالص منهای هزینه و ضایعات"
           />
           <StatCard
             title="ارزش موجودی"
-            value={`${(inventoryValue ?? 0).toLocaleString('fa-IR')} تومان`}
+            value={`${(metrics.inventoryValue ?? 0).toLocaleString('fa-IR')} تومان`}
             icon={Package}
             description="ارزش کل محصولات و مواد اولیه"
-          />
-          <StatCard
-            title="ارزش ضایعات"
-            value={`${(wasteValue ?? 0).toLocaleString('fa-IR')} تومان`}
-            icon={Trash2}
-            description={`${(waste?.length ?? 0).toLocaleString('fa-IR')} رکورد ضایعات`}
           />
         </div>
         <div className="mt-8 grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">

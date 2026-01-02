@@ -102,4 +102,22 @@ export function fulfillOrder(cart: OrderItem[], inventory: Inventory): { updated
     return { updatedProducts, updatedIngredients, success: true };
 }
 
+export function calculateOrderItemCost(
+  item: Food | Product,
+  ingredientMap: Map<string, Ingredient>,
+  productMap: Map<string, Product>
+): number {
+  if ('recipe' in item) {
+    // It's a Food, calculate cost from recipe
+    return item.recipe.reduce((totalCost, recipeItem) => {
+      const ingredient = ingredientMap.get(recipeItem.ingredientId);
+      const ingredientCost = ingredient ? ingredient.avgBuyPrice : 0;
+      return totalCost + recipeItem.quantity * ingredientCost;
+    }, 0);
+  } else {
+    // It's a Product, use its avgBuyPrice
+    const product = productMap.get(item.id);
+    return product ? product.avgBuyPrice : 0;
+  }
+}
     

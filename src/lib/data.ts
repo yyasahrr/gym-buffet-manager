@@ -77,11 +77,11 @@ export const customerTransactions: CustomerTransaction[] = [
 ];
 
 export const recentOrders: Order[] = [
-    { id: 'ord-1', customerName: 'علی رضایی', customerId: 'cust-1', items: [{ item: foods[0], quantity: 1 }], total: 125000, createdAt: new Date(Date.now() - 3600000 * 24 * 2).toISOString(), status: 'پرداخت شده' },
-    { id: 'ord-2', customerName: 'زهرا احمدی', customerId: 'cust-2', items: [{ item: products[0], quantity: 1 }, { item: foods[2], quantity: 1 }], total: 585000, createdAt: new Date(Date.now() - 3600000 * 24 * 3).toISOString(), status: 'پرداخت شده' },
-    { id: 'ord-3', customerName: 'محمد حسینی', customerId: 'cust-3', items: [{ item: products[2], quantity: 2 }], total: 60000, createdAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(), status: 'پرداخت شده' },
-    { id: 'ord-4', customerName: 'مشتری حضوری', customerId: 'cust-4', items: [{ item: foods[1], quantity: 2 }], total: 200000, createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), status: 'پرداخت شده' },
-    { id: 'ord-5', customerName: 'علی رضایی', customerId: 'cust-1', items: [{ item: products[3], quantity: 3 }], total: 75000, createdAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-1', customerName: 'علی رضایی', customerId: 'cust-1', items: [{ item: foods[0], quantity: 1 }], total: 125000, totalCost: 16000 + 20000 + 1500, createdAt: new Date(Date.now() - 3600000 * 24 * 2).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-2', customerName: 'زهرا احمدی', customerId: 'cust-2', items: [{ item: products[0], quantity: 1 }, { item: foods[2], quantity: 1 }], total: 585000, totalCost: 350000 + 80000 + 15000 + 4000, createdAt: new Date(Date.now() - 3600000 * 24 * 3).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-3', customerName: 'محمد حسینی', customerId: 'cust-3', items: [{ item: products[2], quantity: 2 }], total: 60000, totalCost: 30000, createdAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-4', customerName: 'مشتری حضوری', customerId: 'cust-4', items: [{ item: foods[1], quantity: 2 }], total: 200000, totalCost: (15000 + 7500 + 1500) * 2, createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), status: 'پرداخت شده' },
+    { id: 'ord-5', customerName: 'علی رضایی', customerId: 'cust-1', items: [{ item: products[3], quantity: 3 }], total: 75000, totalCost: 36000, createdAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(), status: 'پرداخت شده' },
 ];
 
 export const expenses: Expense[] = [];

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Plus, Minus, Trash2, ShoppingCart, Loader2, User } from 'lucide-react';
 import type { Order, OrderItem, Product, Food, Customer, Ingredient, CustomerTransaction } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { canFulfillOrderItem, fulfillOrder } from '@/lib/inventory';
+import { canFulfillOrderItem, fulfillOrder, calculateOrderItemCost } from '@/lib/inventory';
 import { useAppData, dataStore } from '@/lib/store';
 
 import {
@@ -182,6 +182,13 @@ export default function OrderClient() {
         
         let updatedCustomerTransactions = [...customerTransactions];
         const newOrderId = `ord-${Date.now()}`;
+        const ingredientMap = new Map(ingredients.map(i => [i.id, i]));
+        const productMap = new Map(products.map(p => [p.id, p]));
+
+        const totalCost = cart.reduce((sum, cartItem) => {
+            const cost = calculateOrderItemCost(cartItem.item, ingredientMap, productMap);
+            return sum + (cost * cartItem.quantity);
+        }, 0);
 
         if (paymentMethod === 'customer_account') {
             const newTransaction: CustomerTransaction = {
@@ -206,6 +213,7 @@ export default function OrderClient() {
                 item: { id: cartItem.item.id, name: cartItem.item.name, sellPrice: cartItem.item.sellPrice, imageId: cartItem.item.imageId }
             })),
             total: cartTotal,
+            totalCost: totalCost,
             createdAt: new Date().toISOString(),
             status: 'پرداخت شده',
         }
