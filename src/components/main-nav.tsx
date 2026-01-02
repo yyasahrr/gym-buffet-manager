@@ -10,6 +10,8 @@ import {
   ChefHat,
   LineChart,
   Users,
+  Receipt,
+  Truck,
 } from 'lucide-react';
 
 import {
@@ -23,9 +25,11 @@ const links = [
   { href: '/orders', label: 'سفارشات', icon: ShoppingCart },
   { href: '/products', label: 'محصولات', icon: Package },
   { href: '/ingredients', label: 'مواد اولیه', icon: Leaf },
+  { href: '/purchases', label: 'خرید', icon: Truck },
   { href: '/recipes', label: 'دستور پخت‌ها', icon: ChefHat },
   { href: '/reports', label: 'گزارشات', icon: LineChart },
   { href: '/customers', label: 'مشتریان', icon: Users },
+  { href: '/expenses', label: 'هزینه‌ها', icon: Receipt },
 ];
 
 export function MainNav() {

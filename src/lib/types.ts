@@ -24,7 +24,7 @@ export type Ingredient = {
   variantName?: string; // e.g., "Single" vs "Pack of 30" for eggs
   stock: number;
   avgBuyPrice: number; // Price per single unit ('g', 'ml', 'count')
-  imageId: string;
+  imageUrl?: string; // Changed from imageId to store data URL
   unit: Unit;
 };
 
@@ -60,4 +60,19 @@ export type Customer = {
   id: string;
   name: string;
   balance: number; // Positive is credit, negative is debt
+};
+
+export type Expense = {
+    id: string;
+    description: string;
+    amount: number;
+    date: string;
+};
+
+export type Purchase = {
+    id: string;
+    ingredientId: string;
+    quantity: number;
+    purchasePrice: number; // Price for the quantity purchased
+    date: string;
 };

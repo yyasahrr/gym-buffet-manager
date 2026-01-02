@@ -1,8 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { PlusCircle } from 'lucide-react';
-import placeholderImages from '@/lib/placeholder-images.json';
+import { PlusCircle, Upload } from 'lucide-react';
 import { ingredients as initialIngredients } from '@/lib/data';
 import { type Ingredient, type Unit } from '@/lib/types';
 import { unitLabels } from '@/lib/types';
@@ -26,7 +25,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, ChangeEvent } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
@@ -41,7 +40,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
 
 const packagingTypes = [
@@ -58,7 +56,7 @@ export default function IngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newIngredient, setNewIngredient] = useState<{name: string; variantName: string; stock: string; avgBuyPrice: string; unit: Unit, imageId: string}>({ name: '', variantName: '', stock: '', avgBuyPrice: '', unit: 'g', imageId: 'tomato' });
+    const [newIngredient, setNewIngredient] = useState<{name: string; variantName: string; stock: string; avgBuyPrice: string; unit: Unit, imageUrl?: string}>({ name: '', variantName: '', stock: '0', avgBuyPrice: '0', unit: 'g' });
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -80,13 +78,24 @@ export default function IngredientsPage() {
         );
     }, [ingredients, searchQuery]);
 
+    const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setNewIngredient({ ...newIngredient, imageUrl: reader.result as string });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
     const handleAddIngredient = () => {
-        const { name, variantName, stock, avgBuyPrice, unit, imageId } = newIngredient;
-        if (!name || !stock || !avgBuyPrice || !unit) {
+        const { name, variantName, stock, avgBuyPrice, unit, imageUrl } = newIngredient;
+        if (!name || !unit) {
             toast({
                 variant: "destructive",
                 title: "خطا",
-                description: "لطفاً تمام فیلدهای لازم را پر کنید.",
+                description: "لطفاً نام و واحد ماده اولیه را پر کنید.",
             });
             return;
         }
@@ -95,9 +104,9 @@ export default function IngredientsPage() {
             id: `ing-${Date.now()}`,
             name,
             variantName: variantName || undefined,
-            stock: parseInt(stock, 10),
-            avgBuyPrice: parseInt(avgBuyPrice, 10),
-            imageId: imageId,
+            stock: parseInt(stock, 10) || 0,
+            avgBuyPrice: parseInt(avgBuyPrice, 10) || 0,
+            imageUrl,
             unit,
         };
 
@@ -107,19 +116,12 @@ export default function IngredientsPage() {
         
         toast({
             title: "موفقیت‌آمیز",
-            description: `ماده اولیه "${name} ${variantName || ''}" با موفقیت اضافه شد.`,
+            description: `ماده اولیه "${name} ${variantName || ''}" با موفقیت اضافه شد. برای افزودن موجودی به صفحه خرید مراجعه کنید.`,
         });
 
         setIsDialogOpen(false);
-        setNewIngredient({ name: '', variantName: '', stock: '', avgBuyPrice: '', unit: 'g', imageId: 'tomato' });
+        setNewIngredient({ name: '', variantName: '', stock: '0', avgBuyPrice: '0', unit: 'g' });
     };
-
-    const totalPurchasePrice = useMemo(() => {
-        const quantity = parseFloat(newIngredient.stock) || 0;
-        const pricePerUnit = parseFloat(newIngredient.avgBuyPrice) || 0;
-        return quantity * pricePerUnit;
-    }, [newIngredient.stock, newIngredient.avgBuyPrice]);
-    
 
     return (
         <div className="flex flex-col h-full">
@@ -129,14 +131,14 @@ export default function IngredientsPage() {
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <DialogTrigger asChild>
                             <Button>
-                                <PlusCircle className="ml-2 h-4 w-4" /> افزودن ماده اولیه
+                                <PlusCircle className="ml-2 h-4 w-4" /> افزودن نوع ماده اولیه
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px]">
                             <DialogHeader>
-                                <DialogTitle>افزودن ماده اولیه جدید</DialogTitle>
+                                <DialogTitle>افزودن نوع ماده اولیه جدید</DialogTitle>
                                 <DialogDescription>
-                                    اطلاعات ماده اولیه جدید را وارد کنید.
+                                    یک نوع ماده اولیه جدید به انبار خود اضافه کنید. موجودی را از صفحه خرید اضافه کنید.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
@@ -177,19 +179,15 @@ export default function IngredientsPage() {
                                     </Select>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="stock" className="text-right">مقدار</Label>
-                                    <Input id="stock" type="number" value={newIngredient.stock} onChange={(e) => setNewIngredient({...newIngredient, stock: e.target.value})} className="col-span-3"/>
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="avgBuyPrice" className="text-right">قیمت خرید (هر واحد)</Label>
-                                    <Input id="avgBuyPrice" type="number" value={newIngredient.avgBuyPrice} onChange={(e) => setNewIngredient({...newIngredient, avgBuyPrice: e.target.value})} className="col-span-3"/>
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label className="text-right">قیمت کل خرید</Label>
-                                    <div className="col-span-3 font-bold">
-                                        {totalPurchasePrice.toLocaleString('fa-IR')} تومان
+                                    <Label htmlFor="image-upload" className="text-right">تصویر</Label>
+                                    <div className="col-span-3">
+                                        <Input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                        <Label htmlFor="image-upload" className="cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-4 text-sm text-muted-foreground hover:bg-muted">
+                                            {newIngredient.imageUrl ? <Image src={newIngredient.imageUrl} alt="Preview" width={80} height={80} className="rounded-md object-cover"/> : <><Upload className="mr-2 h-4 w-4"/> <span>آپلود تصویر</span></>}
+                                        </Label>
                                     </div>
                                 </div>
+
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>لغو</Button>
@@ -200,8 +198,8 @@ export default function IngredientsPage() {
                 </PageHeader>
                 <Card>
                     <CardHeader>
-                        <CardTitle>موجودی مواد اولیه</CardTitle>
-                        <CardDescription>مواد اولیه خود را مدیریت کرده و سطح موجودی آنها را مشاهده کنید.</CardDescription>
+                        <CardTitle>انبار مواد اولیه</CardTitle>
+                        <CardDescription>مواد اولیه و موجودی انبار خود را مدیریت کنید.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -217,7 +215,6 @@ export default function IngredientsPage() {
                             </TableHeader>
                             <TableBody>
                                 {isClient && filteredIngredients.map(ingredient => {
-                                    const image = imageMap.get(ingredient.imageId);
                                     const displayName = `${ingredient.name} ${ingredient.variantName ? `(${ingredient.variantName})` : ''}`;
                                     const stockToDisplay = ingredient.stock;
                                     const unitLabel = unitLabels[ingredient.unit];
@@ -225,14 +222,13 @@ export default function IngredientsPage() {
                                     return (
                                         <TableRow key={ingredient.id}>
                                             <TableCell className="hidden sm:table-cell align-middle">
-                                                {image ? (
+                                                {ingredient.imageUrl ? (
                                                     <Image
                                                         alt={displayName}
                                                         className="aspect-square rounded-md object-cover"
                                                         height="64"
-                                                        src={image.imageUrl}
+                                                        src={ingredient.imageUrl}
                                                         width="64"
-                                                        data-ai-hint={image.imageHint}
                                                     />
                                                 ) : (
                                                     <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">

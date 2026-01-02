@@ -74,7 +74,7 @@ export default function RecipesPage() {
             if (!ingredient) return total;
             // This calculation might need refinement based on units (e.g., g vs kg)
             // For now, assuming quantity is in the base unit of the ingredient
-            return total + ingredient.avgBuyPrice * item.quantity;
+            return total + (ingredient.avgBuyPrice / (ingredient.unit === 'kg' ? 1000 : 1)) * item.quantity;
         }, 0);
     };
 
