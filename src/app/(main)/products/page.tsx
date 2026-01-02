@@ -29,16 +29,16 @@ import { useEffect, useState } from 'react';
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 
 export default function ProductsPage() {
-  const [currentDate, setCurrentDate] = useState('');
+  const [currentDate, setCurrentDate] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentDate(new Date().toLocaleDateString('fa-IR'));
   }, []);
 
   return (
-    <div className="flex flex-col sm:gap-4 sm:py-4">
+    <>
       <Header breadcrumbs={[]} activeBreadcrumb="محصولات" />
-      <main className="flex-1 p-4 sm:px-6 sm:py-0">
+      <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="محصولات">
             <Button>
                 <PlusCircle className="mr-2 h-4 w-4" /> افزودن محصول
@@ -68,7 +68,7 @@ export default function ProductsPage() {
                     const image = imageMap.get(product.imageId);
                     return (
                         <TableRow key={product.id}>
-                            <TableCell className="hidden sm:table-cell">
+                            <TableCell className="hidden sm:table-cell align-middle">
                                 {image && (
                                     <Image
                                         alt={product.name}
@@ -80,13 +80,13 @@ export default function ProductsPage() {
                                     />
                                 )}
                             </TableCell>
-                            <TableCell className="font-medium">{product.name}</TableCell>
-                            <TableCell>
+                            <TableCell className="font-medium align-middle">{product.name}</TableCell>
+                            <TableCell className="align-middle">
                                 <Badge variant={product.stock > 20 ? 'outline' : 'destructive'}>{product.stock}</Badge>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell">{product.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
-                            <TableCell>{product.sellPrice.toLocaleString('fa-IR')} تومان</TableCell>
-                            <TableCell className="hidden md:table-cell">{currentDate}</TableCell>
+                            <TableCell className="hidden md:table-cell align-middle">{product.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
+                            <TableCell className="align-middle">{product.sellPrice.toLocaleString('fa-IR')} تومان</TableCell>
+                            <TableCell className="hidden md:table-cell align-middle">{currentDate}</TableCell>
                         </TableRow>
                     )
                 })}
@@ -100,6 +100,6 @@ export default function ProductsPage() {
           </CardFooter>
         </Card>
       </main>
-    </div>
+    </>
   );
 }

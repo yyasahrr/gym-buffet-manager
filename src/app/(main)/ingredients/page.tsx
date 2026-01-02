@@ -29,16 +29,16 @@ import { useEffect, useState } from 'react';
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 
 export default function IngredientsPage() {
-  const [currentDate, setCurrentDate] = useState('');
+  const [currentDate, setCurrentDate] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentDate(new Date().toLocaleDateString('fa-IR'));
   }, []);
 
   return (
-    <div className="flex flex-col sm:gap-4 sm:py-4">
+    <>
       <Header breadcrumbs={[]} activeBreadcrumb="مواد اولیه" />
-      <main className="flex-1 p-4 sm:px-6 sm:py-0">
+      <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="مواد اولیه">
             <Button>
                 <PlusCircle className="mr-2 h-4 w-4" /> افزودن ماده اولیه
@@ -67,7 +67,7 @@ export default function IngredientsPage() {
                     const image = imageMap.get(ingredient.imageId);
                     return (
                         <TableRow key={ingredient.id}>
-                            <TableCell className="hidden sm:table-cell">
+                            <TableCell className="hidden sm:table-cell align-middle">
                                 {image && (
                                      <Image
                                         alt={ingredient.name}
@@ -79,12 +79,12 @@ export default function IngredientsPage() {
                                     />
                                 )}
                             </TableCell>
-                            <TableCell className="font-medium">{ingredient.name}</TableCell>
-                            <TableCell>
+                            <TableCell className="font-medium align-middle">{ingredient.name}</TableCell>
+                            <TableCell className="align-middle">
                                <Badge variant={ingredient.stock > 20 ? 'outline' : 'destructive'}>{ingredient.stock}</Badge>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
-                            <TableCell className="hidden md:table-cell">{currentDate}</TableCell>
+                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
+                            <TableCell className="hidden md:table-cell align-middle">{currentDate}</TableCell>
                         </TableRow>
                     )
                 })}
@@ -98,6 +98,6 @@ export default function IngredientsPage() {
           </CardFooter>
         </Card>
       </main>
-    </div>
+    </>
   );
 }

@@ -25,9 +25,9 @@ import { cn } from '@/lib/utils';
 
 export default function CustomersPage() {
   return (
-    <div className="flex flex-col sm:gap-4 sm:py-4">
+    <>
       <Header breadcrumbs={[]} activeBreadcrumb="مشتریان" />
-      <main className="flex-1 p-4 sm:px-6 sm:py-0">
+      <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="مشتریان">
             <Button>
                 <PlusCircle className="mr-2 h-4 w-4" /> افزودن مشتری
@@ -53,19 +53,19 @@ export default function CustomersPage() {
               <TableBody>
                 {customers.map(customer => (
                     <TableRow key={customer.id}>
-                        <TableCell className="hidden sm:table-cell">
+                        <TableCell className="hidden sm:table-cell align-middle">
                              <Avatar>
                                 <AvatarImage src={`https://i.pravatar.cc/40?u=${customer.name}`} alt="Avatar" />
                                 <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                         </TableCell>
-                        <TableCell className="font-medium">{customer.name}</TableCell>
-                        <TableCell>
-                           <Badge variant={customer.balance >= 0 ? 'outline' : 'destructive'} className={cn(customer.balance < 0 && 'text-destructive')}>
+                        <TableCell className="font-medium align-middle">{customer.name}</TableCell>
+                        <TableCell className="align-middle">
+                           <Badge variant={customer.balance >= 0 ? 'outline' : 'destructive'}>
                                {customer.balance.toLocaleString('fa-IR')} تومان
                            </Badge>
                         </TableCell>
-                        <TableCell>{customer.creditLimit.toLocaleString('fa-IR')} تومان</TableCell>
+                        <TableCell className="align-middle">{customer.creditLimit.toLocaleString('fa-IR')} تومان</TableCell>
                     </TableRow>
                 ))}
               </TableBody>
@@ -78,6 +78,6 @@ export default function CustomersPage() {
           </CardFooter>
         </Card>
       </main>
-    </div>
+    </>
   );
 }

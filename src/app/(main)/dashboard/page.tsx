@@ -15,9 +15,9 @@ import ReportClient from '@/components/reports/report-client';
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col sm:gap-4 sm:py-4">
+    <>
       <Header breadcrumbs={[]} activeBreadcrumb="داشبورد" />
-      <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+      <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-6 md:gap-8">
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           <StatCard
             title="درآمد کل"
@@ -35,7 +35,7 @@ export default function DashboardPage() {
             title="ارزش موجودی"
             value="۲۳,۴۵۰,۰۰۰ تومان"
             icon={Package}
-            description="بر اساس میانگin قیمت خرید"
+            description="بر اساس میانگین قیمت خرید"
           />
           <StatCard
             title="ارزش ضایعات"
@@ -77,6 +77,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
       </main>
-    </div>
+    </>
   );
 }

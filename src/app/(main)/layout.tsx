@@ -9,7 +9,6 @@ import {
   SidebarFooter,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
 
 export default function MainLayout({
@@ -19,7 +18,7 @@ export default function MainLayout({
 }) {
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar className="border-r">
         <SidebarHeader>
           <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
             <ChefHat className="h-6 w-6 text-primary" />
@@ -33,9 +32,11 @@ export default function MainLayout({
           {/* Footer content can go here */}
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
-        {children}
-      </SidebarInset>
+      <div className='flex-1'>
+        <SidebarInset>
+            {children}
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

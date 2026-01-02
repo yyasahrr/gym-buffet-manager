@@ -28,7 +28,7 @@ export default function ReportClient() {
   return (
     <div className="space-y-4">
       <div>
-        <Button onClick={handleGenerateReport} disabled={isLoading}>
+        <Button onClick={handleGenerateReport} disabled={isLoading} className='text-primary-foreground'>
           <Wand2 className="mr-2 h-4 w-4" />
           {isLoading ? 'در حال ایجاد...' : 'ایجاد گزارش مصرف'}
         </Button>

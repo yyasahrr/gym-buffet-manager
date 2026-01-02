@@ -27,9 +27,9 @@ const calculateCost = (recipe: typeof foods[0]['recipe']) => {
 
 export default function RecipesPage() {
   return (
-    <div className="flex flex-col sm:gap-4 sm:py-4">
+    <>
       <Header breadcrumbs={[]} activeBreadcrumb="دستور پخت‌ها" />
-      <main className="flex-1 p-4 sm:px-6 sm:py-0">
+      <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="دستور پخت غذاها">
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" /> ایجاد دستور پخت
@@ -57,7 +57,7 @@ export default function RecipesPage() {
                   )}
                 </CardHeader>
                 <CardContent className="p-6">
-                    <CardTitle className="mb-2">{food.name}</CardTitle>
+                    <CardTitle className="mb-2 text-xl font-bold">{food.name}</CardTitle>
                     <CardDescription>مواد اولیه:</CardDescription>
                     <ul className="list-disc list-inside text-sm text-muted-foreground my-2">
                         {food.recipe.map(item => {
@@ -86,6 +86,6 @@ export default function RecipesPage() {
           })}
         </div>
       </main>
-    </div>
+    </>
   );
 }

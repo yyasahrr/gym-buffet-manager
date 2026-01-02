@@ -135,7 +135,7 @@ export default function OrderClient() {
                 </div>
             </CardContent>
             <CardHeader className="p-3">
-              <CardTitle className="text-sm md:text-base leading-tight">{item.name}</CardTitle>
+              <CardTitle className="text-sm md:text-base leading-tight font-bold">{item.name}</CardTitle>
               <p className="text-sm md:text-base font-semibold text-primary">{item.sellPrice.toLocaleString('fa-IR')} تومان</p>
             </CardHeader>
           </Card>
@@ -161,9 +161,9 @@ export default function OrderClient() {
         </Tabs>
       </div>
 
-      <Card className="lg:sticky lg:top-20">
+      <Card className="lg:sticky lg:top-24">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5"/>
             سفارش فعلی
           </CardTitle>
@@ -258,7 +258,7 @@ export default function OrderClient() {
                 <span>مجموع</span>
                 <span>{cartTotal.toLocaleString('fa-IR')} تومان</span>
             </div>
-          <Button className="w-full bg-primary hover:bg-primary/90" size="lg" onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut}>
+          <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" size="lg" onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut}>
             {isCheckingOut ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
