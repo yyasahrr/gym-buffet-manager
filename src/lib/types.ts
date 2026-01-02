@@ -96,6 +96,7 @@ export type Purchase = {
     items: PurchaseItem[];
     transportCost: number;
     note: string;
+    status: 'active' | 'archived';
 };
 
 

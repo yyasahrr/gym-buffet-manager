@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, MoreHorizontal, Pencil, Archive, ArchiveRestore } from 'lucide-react';
 import { format } from 'date-fns';
 import { format as formatJalali } from 'date-fns-jalali';
 
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -19,17 +21,33 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useAppData, dataStore } from '@/lib/store';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+
+type DialogState = {
+    isOpen: boolean;
+    mode: 'add' | 'edit';
+    purchase: Purchase | null;
+}
+
+const initialDialogState: DialogState = {
+    isOpen: false,
+    mode: 'add',
+    purchase: null
+};
 
 export default function PurchasesPage() {
   const { ingredients, products, purchases } = useAppData();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
+  const [dialogState, setDialogState] = useState<DialogState>(initialDialogState);
+  
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString());
   const [transportCost, setTransportCost] = useState('');
   const [note, setNote] = useState('');
   const [purchaseItems, setPurchaseItems] = useState<Partial<PurchaseItem>[]>([{}]);
-
+  
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('active');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const activeIngredients = useMemo(() => ingredients.filter(i => i.status === 'active'), [ingredients]);
   const activeProducts = useMemo(() => products.filter(p => p.status === 'active'), [products]);
@@ -41,11 +59,33 @@ export default function PurchasesPage() {
     return map;
   }, [activeIngredients, activeProducts]);
 
+  const filteredPurchases = useMemo(() => {
+      return purchases.filter(p => (p.status || 'active') === activeTab)
+                      .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [purchases, activeTab]);
+
   const resetForm = () => {
     setPurchaseDate(new Date().toISOString());
     setTransportCost('');
     setNote('');
     setPurchaseItems([{}]);
+  };
+
+  const openDialog = (mode: 'add' | 'edit', purchase: Purchase | null = null) => {
+      if (mode === 'edit' && purchase) {
+          setPurchaseDate(purchase.date);
+          setTransportCost(String(purchase.transportCost));
+          setNote(purchase.note);
+          setPurchaseItems(purchase.items);
+      } else {
+          resetForm();
+      }
+      setDialogState({ isOpen: true, mode, purchase });
+  };
+
+  const closeDialog = () => {
+    setDialogState(initialDialogState);
+    resetForm();
   };
 
   const addPurchaseLine = () => setPurchaseItems([...purchaseItems, {}]);
@@ -74,6 +114,16 @@ export default function PurchasesPage() {
       return sum + (item.lineTotalCost || 0);
     }, 0);
   }, [purchaseItems]);
+
+  const handleSavePurchase = () => {
+    if (dialogState.mode === 'edit') {
+        // Logic for editing an existing purchase
+        handleEditPurchase();
+    } else {
+        // Logic for adding a new purchase
+        handleAddPurchase();
+    }
+  };
 
   const handleAddPurchase = () => {
     // --- Validation ---
@@ -107,8 +157,9 @@ export default function PurchasesPage() {
       const finalUnitCost = (itemBaseCost + transportShare) / item.quantity;
       
       if (item.type === 'ingredient') {
-        const originalIngredient = tempIngredients.find(i => i.id === item.itemId.split('-')[1]);
-        if (originalIngredient) {
+        const originalIngredientIndex = tempIngredients.findIndex(i => i.id === item.itemId.split('-')[1]);
+        if (originalIngredientIndex !== -1) {
+          const originalIngredient = tempIngredients[originalIngredientIndex];
           const oldStock = originalIngredient.stock;
           const oldAvg = originalIngredient.avgBuyPrice;
           const newQty = item.quantity;
@@ -121,8 +172,9 @@ export default function PurchasesPage() {
           originalIngredient.avgBuyPrice = newAvgPrice;
         }
       } else { // Product
-        const originalProduct = tempProducts.find(p => p.id === item.itemId.split('-')[1]);
-        if (originalProduct) {
+        const originalProductIndex = tempProducts.findIndex(p => p.id === item.itemId.split('-')[1]);
+        if (originalProductIndex !== -1) {
+           const originalProduct = tempProducts[originalProductIndex];
            const oldStock = originalProduct.stock;
            const oldAvg = originalProduct.avgBuyPrice;
            const newQty = item.quantity;
@@ -137,42 +189,180 @@ export default function PurchasesPage() {
       }
     }
     
-    // --- State Update ---
     const newPurchase: Purchase = {
       id: `pur-${Date.now()}`,
       date: purchaseDate,
       items: validItems,
       transportCost: finalTransportCost,
       note: note,
+      status: 'active',
     };
     
-    const updatedPurchases = [...purchases, newPurchase];
     dataStore.saveData({ 
         ingredients: tempIngredients, 
         products: tempProducts, 
-        purchases: updatedPurchases 
+        purchases: [...purchases, newPurchase]
     });
 
     toast({ title: 'موفقیت‌آمیز', description: 'خرید جدید با موفقیت ثبت و موجودی انبار به روز شد.' });
 
-    setIsDialogOpen(false);
-    resetForm();
+    closeDialog();
   };
+
+  const handleEditPurchase = () => {
+    // NOTE: Editing a purchase is a complex operation that should ideally reverse the original stock/cost
+    // impact and apply a new one. For this implementation, we will only allow editing non-financial
+    // data like date and note to prevent data corruption. A full implementation would require a ledger system.
+    if (!dialogState.purchase) return;
+
+    const updatedPurchases = purchases.map(p => {
+        if (p.id === dialogState.purchase!.id) {
+            return {
+                ...p,
+                date: purchaseDate,
+                note: note,
+                // Items, costs, etc., are not editable in this simplified version
+            };
+        }
+        return p;
+    });
+
+    dataStore.saveData({ purchases: updatedPurchases });
+    toast({ title: 'موفقیت‌آمیز', description: 'فاکتور خرید ویرایش شد.' });
+    closeDialog();
+  };
+  
+  const handleArchivePurchase = (purchaseId: string) => {
+      const updatedPurchases = purchases.map(p => p.id === purchaseId ? {...p, status: 'archived'} : p);
+      dataStore.saveData({ purchases: updatedPurchases });
+      toast({ title: 'فاکتور بایگانی شد' });
+      setOpenMenuId(null);
+  };
+
+  const handleRestorePurchase = (purchaseId: string) => {
+      const updatedPurchases = purchases.map(p => p.id === purchaseId ? {...p, status: 'active'} : p);
+      dataStore.saveData({ purchases: updatedPurchases });
+      toast({ title: 'فاکتور بازیابی شد' });
+      setOpenMenuId(null);
+  };
+
+  const handleDeletePurchase = (purchaseId: string) => {
+      // Hard delete is generally discouraged for financial records.
+      // We recommend archiving instead. This is a placeholder for a safe-delete check.
+      // For now, we will simply filter it out.
+      const updatedPurchases = purchases.filter(p => p.id !== purchaseId);
+      dataStore.saveData({ purchases: updatedPurchases });
+      toast({ title: 'فاکتور برای همیشه حذف شد' });
+      setOpenMenuId(null);
+  };
+
+ const renderTable = (purchaseList: Purchase[]) => (
+    <Card>
+      <CardHeader>
+        <CardTitle>{activeTab === 'active' ? 'فاکتورهای خرید فعال' : 'فاکتورهای بایگانی شده'}</CardTitle>
+        <CardDescription>لیست تمام فاکتورهای خرید ثبت شده.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>تاریخ</TableHead>
+              <TableHead>اقلام</TableHead>
+              <TableHead>هزینه حمل</TableHead>
+              <TableHead>مبلغ نهایی</TableHead>
+              <TableHead><span className="sr-only">عملیات</span></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {purchaseList.length > 0 ? (
+              purchaseList.map(pur => {
+                const totalValue = (pur.items || []).reduce((sum, item) => sum + (item.lineTotalCost || 0), 0) + (pur.transportCost || 0);
+                return (
+                    <TableRow key={pur.id}>
+                        <TableCell>{formatJalali(new Date(pur.date), 'yyyy/MM/dd')}</TableCell>
+                        <TableCell>{(pur.items || []).map(i => i.itemName).join('، ')}</TableCell>
+                        <TableCell>{(pur.transportCost || 0).toLocaleString('fa-IR')} تومان</TableCell>
+                        <TableCell className="font-semibold">{Math.round(totalValue).toLocaleString('fa-IR')} تومان</TableCell>
+                        <TableCell className="text-left">
+                           <DropdownMenu open={openMenuId === pur.id} onOpenChange={(isOpen) => setOpenMenuId(isOpen ? pur.id : null)}>
+                              <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                      <span className="sr-only">باز کردن منو</span>
+                                      <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                  {pur.status !== 'archived' ? (
+                                      <>
+                                          <DropdownMenuItem onClick={() => openDialog('edit', pur)} disabled>
+                                              <Pencil className="ml-2 h-4 w-4" /> ویرایش (غیرفعال)
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleArchivePurchase(pur.id)}>
+                                              <Archive className="ml-2 h-4 w-4" /> بایگانی
+                                          </DropdownMenuItem>
+                                      </>
+                                  ) : (
+                                      <>
+                                          <DropdownMenuItem onClick={() => handleRestorePurchase(pur.id)}>
+                                              <ArchiveRestore className="ml-2 h-4 w-4" /> بازیابی
+                                          </DropdownMenuItem>
+                                          <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                                    <Trash2 className="ml-2 h-4 w-4" /> حذف دائمی
+                                                  </DropdownMenuItem>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                  <AlertDialogHeader>
+                                                    <AlertDialogTitle>آیا مطمئن هستید؟</AlertDialogTitle>
+                                                    <AlertDialogDescription>این عمل غیرقابل بازگشت است و بر موجودی و میانگین قیمت خرید تاثیر منفی خواهد گذاشت.</AlertDialogDescription>
+                                                  </AlertDialogHeader>
+                                                  <AlertDialogFooter>
+                                                    <AlertDialogCancel>لغو</AlertDialogCancel>
+                                                    <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDeletePurchase(pur.id)}>تایید و حذف دائمی</AlertDialogAction>
+                                                  </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                          </AlertDialog>
+                                      </>
+                                  )}
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                    </TableRow>
+                )
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  خریدی در این بخش ثبت نشده است.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+       <CardFooter>
+            <div className="text-xs text-muted-foreground">
+                نمایش <strong>{purchaseList.length}</strong> از <strong>{purchases.filter(p => (p.status || 'active') === activeTab).length}</strong> فاکتور
+            </div>
+        </CardFooter>
+    </Card>
+ );
 
   return (
     <div className="flex flex-col h-full">
       <Header breadcrumbs={[]} activeBreadcrumb="خرید" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="ثبت خرید">
-          <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if (!isOpen) resetForm(); setIsDialogOpen(isOpen); }}>
+          <Dialog open={dialogState.isOpen} onOpenChange={(isOpen) => { if (!isOpen) closeDialog(); else openDialog('add'); }}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => openDialog('add')}>
                 <PlusCircle className="ml-2 h-4 w-4" /> ثبت فاکتور خرید
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>ثبت فاکتور خرید جدید</DialogTitle>
+                <DialogTitle>{dialogState.mode === 'add' ? 'ثبت فاکتور خرید جدید' : 'ویرایش فاکتور خرید'}</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -180,10 +370,10 @@ export default function PurchasesPage() {
                     <Label htmlFor="date">تاریخ فاکتور</Label>
                     <Input id="date" type="date" value={format(new Date(purchaseDate), 'yyyy-MM-dd')} onChange={(e) => setPurchaseDate(new Date(e.target.value).toISOString())} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="transportCost">هزینه حمل و نقل (تومان)</Label>
-                    <Input id="transportCost" type="number" value={transportCost} onChange={(e) => setTransportCost(e.target.value)} placeholder="0" />
-                  </div>
+                   <div className="space-y-2">
+                    <Label htmlFor="note">یادداشت (اختیاری)</Label>
+                    <Input id="note" value={note} onChange={e => setNote(e.target.value)} />
+                </div>
                 </div>
 
                 <Separator className="my-4" />
@@ -194,12 +384,13 @@ export default function PurchasesPage() {
                      const selectedItem = allItemsMap.get(item.itemId || '');
                      const unitLabel = selectedItem && 'unit' in selectedItem ? unitLabels[selectedItem.unit] : 'عدد';
                      const calculatedUnitPrice = (item.lineTotalCost || 0) / (item.quantity || 1);
+                     const isEditDisabled = dialogState.mode === 'edit';
 
                     return (
                         <div key={index} className="grid grid-cols-12 gap-2 items-start p-2 border rounded-md">
                           <div className="col-span-12 md:col-span-4 space-y-2">
                             <Label>نام کالا</Label>
-                            <Select value={item.itemId} onValueChange={val => handleItemChange(index, 'itemId', val)}>
+                            <Select value={item.itemId} onValueChange={val => handleItemChange(index, 'itemId', val)} disabled={isEditDisabled}>
                               <SelectTrigger><SelectValue placeholder="انتخاب کالا..." /></SelectTrigger>
                               <SelectContent>
                                 <SelectGroup>
@@ -215,19 +406,19 @@ export default function PurchasesPage() {
                           </div>
                           <div className="col-span-6 md:col-span-3 space-y-2">
                             <Label>مقدار ({unitLabel})</Label>
-                            <Input type="number" placeholder="0" value={item.quantity || ''} onChange={e => handleItemChange(index, 'quantity', parseFloat(e.target.value))} />
+                            <Input type="number" placeholder="0" value={item.quantity || ''} onChange={e => handleItemChange(index, 'quantity', parseFloat(e.target.value))} disabled={isEditDisabled} />
                           </div>
                           <div className="col-span-6 md:col-span-4 space-y-2">
                             <Label>مبلغ کل ردیف (تومان)</Label>
-                            <Input type="number" placeholder="0" value={item.lineTotalCost || ''} onChange={e => handleItemChange(index, 'lineTotalCost', parseFloat(e.target.value))} />
+                            <Input type="number" placeholder="0" value={item.lineTotalCost || ''} onChange={e => handleItemChange(index, 'lineTotalCost', parseFloat(e.target.value))} disabled={isEditDisabled} />
                              {item.lineTotalCost && item.quantity ? (
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    قیمت واحد محاسبه‌شده: {Math.round(calculatedUnitPrice).toLocaleString('fa-IR')} تومان / {unitLabel}
+                                    قیمت واحد: {Math.round(calculatedUnitPrice).toLocaleString('fa-IR')} ت
                                 </p>
                              ) : null}
                           </div>
                           <div className="col-span-12 md:col-span-1 flex justify-end items-center pt-6">
-                            <Button variant="ghost" size="icon" onClick={() => removePurchaseLine(index)} disabled={purchaseItems.length === 1}>
+                            <Button variant="ghost" size="icon" onClick={() => removePurchaseLine(index)} disabled={purchaseItems.length === 1 || isEditDisabled}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
@@ -235,16 +426,16 @@ export default function PurchasesPage() {
                     )
                   })}
                 </div>
-                <Button variant="outline" size="sm" onClick={addPurchaseLine} className="mt-2">
+                <Button variant="outline" size="sm" onClick={addPurchaseLine} className="mt-2" disabled={dialogState.mode === 'edit'}>
                   <PlusCircle className="ml-2 h-4 w-4" /> افزودن ردیف
                 </Button>
 
                 <Separator className="my-4" />
                 
                  <div className="space-y-2">
-                    <Label htmlFor="note">یادداشت (اختیاری)</Label>
-                    <Textarea id="note" value={note} onChange={e => setNote(e.target.value)} />
-                </div>
+                    <Label htmlFor="transportCost">هزینه حمل و نقل (تومان)</Label>
+                    <Input id="transportCost" type="number" value={transportCost} onChange={(e) => setTransportCost(e.target.value)} placeholder="0" disabled={dialogState.mode === 'edit'} />
+                  </div>
 
                 <div className='mt-4 p-4 bg-muted/50 rounded-lg space-y-2'>
                     <div className='flex justify-between items-center'>
@@ -263,59 +454,26 @@ export default function PurchasesPage() {
 
               </div>
               <DialogFooter className="pt-4 border-t">
-                <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>لغو</Button>
-                <Button type="submit" onClick={handleAddPurchase}>ثبت فاکتور</Button>
+                <Button type="button" variant="secondary" onClick={closeDialog}>لغو</Button>
+                <Button type="submit" onClick={handleSavePurchase}>ثبت فاکتور</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </PageHeader>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>تاریخچه خرید</CardTitle>
-            <CardDescription>لیست تمام فاکتورهای خرید ثبت شده.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>تاریخ</TableHead>
-                  <TableHead>اقلام</TableHead>
-                  <TableHead>هزینه حمل</TableHead>
-                  <TableHead>مبلغ نهایی</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {purchases.length > 0 ? (
-                  [...purchases].reverse().map(pur => {
-                    const totalValue = (pur.items || []).reduce((sum, item) => {
-                         // Backward compatibility for old data structure
-                        if (item.lineTotalCost) {
-                            return sum + item.lineTotalCost;
-                        }
-                        return sum;
-                    }, 0) + (pur.transportCost || 0);
-
-                    return (
-                        <TableRow key={pur.id}>
-                            <TableCell>{formatJalali(new Date(pur.date), 'yyyy/MM/dd')}</TableCell>
-                            <TableCell>{(pur.items || []).map(i => i.itemName).join('، ')}</TableCell>
-                            <TableCell>{(pur.transportCost || 0).toLocaleString('fa-IR')} تومان</TableCell>
-                            <TableCell className="font-semibold">{Math.round(totalValue).toLocaleString('fa-IR')} تومان</TableCell>
-                        </TableRow>
-                    )
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
-                      خریدی ثبت نشده است.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="active">فعال</TabsTrigger>
+                <TabsTrigger value="archived">بایگانی</TabsTrigger>
+            </TabsList>
+            <TabsContent value="active">
+                {renderTable(filteredPurchases)}
+            </TabsContent>
+            <TabsContent value="archived">
+                {renderTable(filteredPurchases)}
+            </TabsContent>
+        </Tabs>
+        
       </main>
     </div>
   );
