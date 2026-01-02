@@ -1,71 +1,71 @@
 import type { Product, Ingredient, Food, Order, Customer } from './types';
 
 export const products: Product[] = [
-  { id: 'prod-1', name: 'Whey Protein', stock: 100, avgBuyPrice: 35.50, sellPrice: 50.00, imageId: 'protein_powder' },
-  { id: 'prod-2', name: 'Creatine', stock: 50, avgBuyPrice: 15.00, sellPrice: 25.00, imageId: 'creatine_powder' },
-  { id: 'prod-3', name: 'Energy Drink', stock: 200, avgBuyPrice: 1.50, sellPrice: 3.00, imageId: 'energy_drink' },
-  { id: 'prod-4', name: 'Protein Bar', stock: 150, avgBuyPrice: 1.20, sellPrice: 2.50, imageId: 'protein_bar' },
-  { id: 'prod-5', name: 'Mineral Water', stock: 300, avgBuyPrice: 0.50, sellPrice: 1.00, imageId: 'water_bottle' },
-  { id: 'prod-6', name: 'Pre-Workout', stock: 40, avgBuyPrice: 25.00, sellPrice: 40.00, imageId: 'pre_workout' },
+  { id: 'prod-1', name: 'پروتئین وی', stock: 100, avgBuyPrice: 350000, sellPrice: 500000, imageId: 'protein_powder' },
+  { id: 'prod-2', name: 'کراتین', stock: 50, avgBuyPrice: 150000, sellPrice: 250000, imageId: 'creatine_powder' },
+  { id: 'prod-3', name: 'نوشیدنی انرژی‌زا', stock: 200, avgBuyPrice: 15000, sellPrice: 30000, imageId: 'energy_drink' },
+  { id: 'prod-4', name: 'پروتئین بار', stock: 150, avgBuyPrice: 12000, sellPrice: 25000, imageId: 'protein_bar' },
+  { id: 'prod-5', name: 'آب معدنی', stock: 300, avgBuyPrice: 5000, sellPrice: 10000, imageId: 'water_bottle' },
+  { id: 'prod-6', name: 'مکمل قبل تمرین', stock: 40, avgBuyPrice: 250000, sellPrice: 400000, imageId: 'pre_workout' },
 ];
 
 export const ingredients: Ingredient[] = [
-  { id: 'ing-1', name: 'Chicken Breast', stock: 50, avgBuyPrice: 8.00, imageId: 'chicken_breast' },
-  { id: 'ing-2', name: 'Romaine Lettuce', stock: 20, avgBuyPrice: 2.00, imageId: 'lettuce' },
-  { id: 'ing-3', name: 'Quinoa', stock: 30, avgBuyPrice: 10.00, imageId: 'quinoa' },
-  { id: 'ing-4', name: 'Avocado', stock: 40, avgBuyPrice: 1.50, imageId: 'avocado' },
-  { id: 'ing-5', name: 'Tomato', stock: 60, avgBuyPrice: 3.00, imageId: 'tomato' },
-  { id: 'ing-6', name: 'Whole Wheat Bread', stock: 25, avgBuyPrice: 4.00, imageId: 'bread' },
-  { id: 'ing-7', name: 'Egg', stock: 100, avgBuyPrice: 0.20, imageId: 'egg' },
+  { id: 'ing-1', name: 'سینه مرغ', stock: 50, avgBuyPrice: 80000, imageId: 'chicken_breast' },
+  { id: 'ing-2', name: 'کاهو رومانو', stock: 20, avgBuyPrice: 20000, imageId: 'lettuce' },
+  { id: 'ing-3', name: 'کینوا', stock: 30, avgBuyPrice: 100000, imageId: 'quinoa' },
+  { id: 'ing-4', name: 'آووکادو', stock: 40, avgBuyPrice: 15000, imageId: 'avocado' },
+  { id: 'ing-5', name: 'گوجه فرنگی', stock: 60, avgBuyPrice: 30000, imageId: 'tomato' },
+  { id: 'ing-6', name: 'نان گندم کامل', stock: 25, avgBuyPrice: 40000, imageId: 'bread' },
+  { id: 'ing-7', name: 'تخم مرغ', stock: 100, avgBuyPrice: 2000, imageId: 'egg' },
 ];
 
 export const foods: Food[] = [
   {
     id: 'food-1',
-    name: 'Grilled Chicken Salad',
+    name: 'سالاد مرغ گریل شده',
     recipe: [
       { ingredientId: 'ing-1', quantity: 0.2 }, // 200g
       { ingredientId: 'ing-2', quantity: 0.1 }, // 100g
       { ingredientId: 'ing-5', quantity: 0.05 }, // 50g
     ],
-    sellPrice: 12.50,
+    sellPrice: 125000,
     imageId: 'chicken_salad'
   },
   {
     id: 'food-2',
-    name: 'Quinoa Bowl',
+    name: 'کاسه کینوا',
     recipe: [
       { ingredientId: 'ing-3', quantity: 0.15 }, // 150g
       { ingredientId: 'ing-4', quantity: 0.5 }, // half avocado
       { ingredientId: 'ing-5', quantity: 0.05 }, // 50g
     ],
-    sellPrice: 10.00,
+    sellPrice: 100000,
     imageId: 'quinoa_bowl'
   },
   {
     id: 'food-3',
-    name: 'Avocado Toast',
+    name: 'تست آووکادو',
     recipe: [
       { ingredientId: 'ing-6', quantity: 2 }, // 2 slices
       { ingredientId: 'ing-4', quantity: 1 }, // 1 avocado
       { ingredientId: 'ing-7', quantity: 2 }, // 2 eggs
     ],
-    sellPrice: 8.50,
+    sellPrice: 85000,
     imageId: 'avocado_toast'
   },
 ];
 
 export const customers: Customer[] = [
-    { id: 'cust-1', name: 'Alice Johnson', balance: 50.00, creditLimit: 100.00 },
-    { id: 'cust-2', name: 'Bob Williams', balance: 120.50, creditLimit: 50.00 },
-    { id: 'cust-3', name: 'Charlie Brown', balance: -25.00, creditLimit: 200.00 },
-    { id: 'cust-4', name: 'Walk-in Customer', balance: 0, creditLimit: 0 },
+    { id: 'cust-1', name: 'علی رضایی', balance: 500000, creditLimit: 1000000 },
+    { id: 'cust-2', name: 'زهرا احمدی', balance: 1205000, creditLimit: 500000 },
+    { id: 'cust-3', name: 'محمد حسینی', balance: -250000, creditLimit: 2000000 },
+    { id: 'cust-4', name: 'مشتری حضوری', balance: 0, creditLimit: 0 },
 ];
 
 export const recentOrders: Order[] = [
-    { id: 'ord-1', customerName: 'Alice Johnson', items: [{ item: foods[0], quantity: 1 }], total: 12.50, createdAt: new Date(Date.now() - 3600000 * 1).toISOString() },
-    { id: 'ord-2', customerName: 'Bob Williams', items: [{ item: products[0], quantity: 1 }, { item: foods[2], quantity: 1 }], total: 58.50, createdAt: new Date(Date.now() - 3600000 * 2).toISOString() },
-    { id: 'ord-3', customerName: 'Charlie Brown', items: [{ item: products[2], quantity: 2 }], total: 6.00, createdAt: new Date(Date.now() - 3600000 * 3).toISOString() },
-    { id: 'ord-4', name: 'Diana Prince', customerName: 'Diana Prince', items: [{ item: foods[1], quantity: 2 }], total: 20.00, createdAt: new Date(Date.now() - 3600000 * 4).toISOString() },
-    { id: 'ord-5', customerName: 'Ethan Hunt', items: [{ item: products[3], quantity: 3 }], total: 7.50, createdAt: new Date(Date.now() - 3600000 * 5).toISOString() },
+    { id: 'ord-1', customerName: 'علی رضایی', items: [{ item: foods[0], quantity: 1 }], total: 125000, createdAt: new Date(Date.now() - 3600000 * 1).toISOString() },
+    { id: 'ord-2', customerName: 'زهرا احمدی', items: [{ item: products[0], quantity: 1 }, { item: foods[2], quantity: 1 }], total: 585000, createdAt: new Date(Date.now() - 3600000 * 2).toISOString() },
+    { id: 'ord-3', customerName: 'محمد حسینی', items: [{ item: products[2], quantity: 2 }], total: 60000, createdAt: new Date(Date.now() - 3600000 * 3).toISOString() },
+    { id: 'ord-4', name: 'Diana Prince', customerName: 'مریم محمدی', items: [{ item: foods[1], quantity: 2 }], total: 200000, createdAt: new Date(Date.now() - 3600000 * 4).toISOString() },
+    { id: 'ord-5', customerName: 'پرهام صالحی', items: [{ item: products[3], quantity: 3 }], total: 75000, createdAt: new Date(Date.now() - 3600000 * 5).toISOString() },
 ];

@@ -19,14 +19,13 @@ const generateData = () => [
 ];
 
 export function OverviewChart() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<{name: string; total: number}[]>([]);
 
   useEffect(() => {
     setData(generateData());
   }, []);
 
   if (data.length === 0) {
-    // You can return a loading state or null
     return null;
   }
   
@@ -45,7 +44,7 @@ export function OverviewChart() {
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${value}`}
+          tickFormatter={(value) => `${new Intl.NumberFormat('fa-IR').format(Number(value))}`}
         />
         <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
       </BarChart>

@@ -9,6 +9,7 @@ import {
   Leaf,
   ChefHat,
   LineChart,
+  Users,
 } from 'lucide-react';
 
 import {
@@ -18,12 +19,13 @@ import {
 } from '@/components/ui/sidebar';
 
 const links = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/orders', label: 'Orders', icon: ShoppingCart },
-  { href: '/products', label: 'Products', icon: Package },
-  { href: '/ingredients', label: 'Ingredients', icon: Leaf },
-  { href: '/recipes', label: 'Recipes', icon: ChefHat },
-  { href: '/reports', label: 'Reports', icon: LineChart },
+  { href: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
+  { href: '/orders', label: 'سفارشات', icon: ShoppingCart },
+  { href: '/products', label: 'محصولات', icon: Package },
+  { href: '/ingredients', label: 'مواد اولیه', icon: Leaf },
+  { href: '/recipes', label: 'دستور پخت‌ها', icon: ChefHat },
+  { href: '/reports', label: 'گزارشات', icon: LineChart },
+  { href: '/customers', label: 'مشتریان', icon: Users },
 ];
 
 export function MainNav() {

@@ -28,29 +28,29 @@ const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p])
 export default function IngredientsPage() {
   return (
     <div className="flex flex-col sm:gap-4 sm:py-4">
-      <Header breadcrumbs={[]} activeBreadcrumb="Ingredients" />
+      <Header breadcrumbs={[]} activeBreadcrumb="مواد اولیه" />
       <main className="flex-1 p-4 sm:px-6 sm:py-0">
-        <PageHeader title="Ingredients">
+        <PageHeader title="مواد اولیه">
             <Button>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Ingredient
+                <PlusCircle className="mr-2 h-4 w-4" /> افزودن ماده اولیه
             </Button>
         </PageHeader>
         <Card>
             <CardHeader>
-                <CardTitle>Ingredient Inventory</CardTitle>
-                <CardDescription>Manage your ingredients and view their stock levels.</CardDescription>
+                <CardTitle>موجودی مواد اولیه</CardTitle>
+                <CardDescription>مواد اولیه خود را مدیریت کرده و سطح موجودی آنها را مشاهده کنید.</CardDescription>
             </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="hidden w-[100px] sm:table-cell">
-                    <span className="sr-only">Image</span>
+                    <span className="sr-only">تصویر</span>
                   </TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Stock (units)</TableHead>
-                  <TableHead className="hidden md:table-cell">Avg. Buy Price</TableHead>
-                  <TableHead className="hidden md:table-cell">Created at</TableHead>
+                  <TableHead>نام</TableHead>
+                  <TableHead>موجودی (واحد)</TableHead>
+                  <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
+                  <TableHead className="hidden md:table-cell">تاریخ ایجاد</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -74,8 +74,8 @@ export default function IngredientsPage() {
                             <TableCell>
                                <Badge variant={ingredient.stock > 20 ? 'outline' : 'destructive'}>{ingredient.stock}</Badge>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell">${ingredient.avgBuyPrice.toFixed(2)}</TableCell>
-                            <TableCell className="hidden md:table-cell">{new Date().toLocaleDateString()}</TableCell>
+                            <TableCell className="hidden md:table-cell">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
+                            <TableCell className="hidden md:table-cell">{new Date().toLocaleDateString('fa-IR')}</TableCell>
                         </TableRow>
                     )
                 })}
@@ -84,7 +84,7 @@ export default function IngredientsPage() {
           </CardContent>
           <CardFooter>
             <div className="text-xs text-muted-foreground">
-              Showing <strong>1-{ingredients.length}</strong> of <strong>{ingredients.length}</strong> ingredients
+              نمایش <strong>1-{ingredients.length}</strong> از <strong>{ingredients.length}</strong> ماده اولیه
             </div>
           </CardFooter>
         </Card>

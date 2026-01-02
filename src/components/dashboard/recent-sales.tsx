@@ -20,7 +20,7 @@ export function RecentSales() {
                     {order.items.map(i => i.item.name).join(', ')}
                 </p>
                 </div>
-                <div className="ml-auto font-medium">+${order.total.toFixed(2)}</div>
+                <div className="mr-auto font-medium">+{order.total.toLocaleString('fa-IR')} تومان</div>
             </div>
         ))}
     </div>

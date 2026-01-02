@@ -47,28 +47,28 @@ export function Header({ breadcrumbs, activeBreadcrumb }: HeaderProps) {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="relative ml-auto flex-1 md:grow-0">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="relative mr-auto flex-1 md:grow-0">
+        <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search..."
-          className="w-full rounded-lg bg-secondary pl-8 md:w-[200px] lg:w-[320px]"
+          placeholder="جستجو..."
+          className="w-full rounded-lg bg-secondary pr-8 md:w-[200px] lg:w-[320px]"
         />
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="icon" className="rounded-full">
             <CircleUser className="h-5 w-5" />
-            <span className="sr-only">Toggle user menu</span>
+            <span className="sr-only">باز کردن منوی کاربر</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel>حساب من</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
+          <DropdownMenuItem>تنظیمات</DropdownMenuItem>
+          <DropdownMenuItem>پشتیبانی</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Logout</DropdownMenuItem>
+          <DropdownMenuItem>خروج</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

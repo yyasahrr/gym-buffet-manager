@@ -23,7 +23,7 @@ export default function MainLayout({
         <SidebarHeader>
           <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
             <ChefHat className="h-6 w-6 text-primary" />
-            <span className="text-lg font-headline">Gym Buffet</span>
+            <span className="text-lg font-headline">بوفه باشگاه</span>
           </Link>
         </SidebarHeader>
         <SidebarContent>

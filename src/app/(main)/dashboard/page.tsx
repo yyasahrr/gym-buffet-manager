@@ -16,38 +16,38 @@ import ReportClient from '@/components/reports/report-client';
 export default function DashboardPage() {
   return (
     <div className="flex flex-col sm:gap-4 sm:py-4">
-      <Header breadcrumbs={[]} activeBreadcrumb="Dashboard" />
+      <Header breadcrumbs={[]} activeBreadcrumb="داشبورد" />
       <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           <StatCard
-            title="Total Revenue"
-            value="$45,231.89"
+            title="درآمد کل"
+            value="۴۵,۲۳۱,۸۹۰ تومان"
             icon={DollarSign}
-            description="+20.1% from last month"
+            description="۲۰.۱٪+ نسبت به ماه گذشته"
           />
           <StatCard
-            title="Total Profit"
-            value="$12,874.21"
+            title="سود کل"
+            value="۱۲,۸۷۴,۲۱۰ تومان"
             icon={DollarSign}
-            description="+18.3% from last month"
+            description="۱۸.۳٪+ نسبت به ماه گذشته"
           />
           <StatCard
-            title="Stock Value"
-            value="$23,450"
+            title="ارزش موجودی"
+            value="۲۳,۴۵۰,۰۰۰ تومان"
             icon={Package}
-            description="Based on avg. buy price"
+            description="بر اساس میانگin قیمت خرید"
           />
           <StatCard
-            title="Waste Value"
-            value="$842.50"
+            title="ارزش ضایعات"
+            value="۸۴۲,۵۰۰ تومان"
             icon={UtensilsCrossed}
-            description="This month"
+            description="در این ماه"
           />
         </div>
         <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader>
-              <CardTitle>Overview</CardTitle>
+              <CardTitle>نمای کلی</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
               <OverviewChart />
@@ -55,9 +55,9 @@ export default function DashboardPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Recent Sales</CardTitle>
+              <CardTitle>فروش‌های اخیر</CardTitle>
               <CardDescription>
-                You made 265 sales this month.
+                شما در این ماه ۲۶۵ فروش داشته‌اید.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -67,9 +67,9 @@ export default function DashboardPage() {
         </div>
         <Card>
             <CardHeader>
-              <CardTitle>Usage Report</CardTitle>
+              <CardTitle>گزارش مصرف</CardTitle>
               <CardDescription>
-                Generate an AI-powered report to analyze historical data and predict food usage.
+                یک گزارش مبتنی بر هوش مصنوعی برای تحلیل داده‌های تاریخی و پیش‌بینی مصرف غذا ایجاد کنید.
               </CardDescription>
             </CardHeader>
             <CardContent>

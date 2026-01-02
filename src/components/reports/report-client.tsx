@@ -30,7 +30,7 @@ export default function ReportClient() {
       <div>
         <Button onClick={handleGenerateReport} disabled={isLoading}>
           <Wand2 className="mr-2 h-4 w-4" />
-          {isLoading ? 'Generating...' : 'Generate Usage Report'}
+          {isLoading ? 'در حال ایجاد...' : 'ایجاد گزارش مصرف'}
         </Button>
       </div>
       {isLoading && (
@@ -43,7 +43,7 @@ export default function ReportClient() {
       )}
       {report && (
         <div>
-          <pre className="mt-2 w-full rounded-md bg-card p-4 border text-sm font-code whitespace-pre-wrap">
+          <pre className="mt-2 w-full rounded-md bg-card p-4 border text-sm font-code whitespace-pre-wrap text-right">
             {report.report}
           </pre>
         </div>

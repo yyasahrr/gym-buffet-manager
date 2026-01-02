@@ -12,14 +12,14 @@ import {
 export default function ReportsPage() {
   return (
     <div className="flex flex-col sm:gap-4 sm:py-4">
-      <Header breadcrumbs={[]} activeBreadcrumb="Reports" />
+      <Header breadcrumbs={[]} activeBreadcrumb="گزارشات" />
       <main className="flex-1 p-4 sm:px-6 sm:py-0">
-        <PageHeader title="Reports" />
+        <PageHeader title="گزارشات" />
         <Card>
             <CardHeader>
-                <CardTitle>Usage Report</CardTitle>
+                <CardTitle>گزارش مصرف</CardTitle>
                 <CardDescription>
-                Leverage generative AI to analyze historical data, predicting food usage to reduce waste.
+                از هوش مصنوعی مولد برای تحلیل داده‌های تاریخی و پیش‌بینی مصرف غذا برای کاهش ضایعات استفاده کنید.
                 </CardDescription>
             </CardHeader>
             <CardContent>

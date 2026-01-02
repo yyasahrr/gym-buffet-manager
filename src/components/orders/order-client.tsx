@@ -75,7 +75,7 @@ export default function OrderClient() {
   }, [cart]);
   
   const newBalance = useMemo(() => {
-    if (!selectedCustomer || selectedCustomer.name === 'Walk-in Customer') {
+    if (!selectedCustomer || selectedCustomer.name === 'مشتری حضوری') {
       return null;
     }
     return selectedCustomer.balance - cartTotal;
@@ -85,8 +85,8 @@ export default function OrderClient() {
     if (cart.length === 0) {
         toast({
             variant: "destructive",
-            title: "Empty Cart",
-            description: "Cannot checkout with an empty cart.",
+            title: "سبد خرید خالی",
+            description: "نمی‌توان با سبد خرید خالی تسویه حساب کرد.",
         });
         return;
     }
@@ -94,8 +94,8 @@ export default function OrderClient() {
     if (selectedCustomer && newBalance !== null && newBalance < -selectedCustomer.creditLimit) {
       toast({
           variant: "destructive",
-          title: "Credit Limit Exceeded",
-          description: `This order would exceed ${selectedCustomer.name}'s credit limit of $${selectedCustomer.creditLimit.toFixed(2)}.`,
+          title: "سقف اعتبار رد شده است",
+          description: `این سفارش سقف اعتبار ${selectedCustomer.name} به مبلغ ${selectedCustomer.creditLimit.toLocaleString('fa-IR')} تومان را رد می‌کند.`,
       });
       return;
     }
@@ -106,14 +106,14 @@ export default function OrderClient() {
     setTimeout(() => {
         if (selectedCustomer && newBalance !== null && newBalance < 0 && newBalance >= -selectedCustomer.creditLimit) {
             toast({
-                title: "Warning: Customer Balance Negative",
-                description: `${selectedCustomer.name}'s new balance will be $${newBalance.toFixed(2)}.`,
+                title: "هشدار: موجودی مشتری منفی است",
+                description: `موجودی جدید ${selectedCustomer.name} مبلغ ${newBalance.toLocaleString('fa-IR')} تومان خواهد بود.`,
             });
         }
     
         toast({
-          title: "Order Placed!",
-          description: `Total: $${cartTotal.toFixed(2)} for ${selectedCustomer?.name || 'Walk-in Customer'}.`,
+          title: "سفارش ثبت شد!",
+          description: `مجموع: ${cartTotal.toLocaleString('fa-IR')} تومان برای ${selectedCustomer?.name || 'مشتری حضوری'}.`,
         });
         setCart([]);
         setIsCheckingOut(false);
@@ -137,7 +137,7 @@ export default function OrderClient() {
             </CardContent>
             <CardHeader className="p-3">
               <CardTitle className="text-base leading-tight">{item.name}</CardTitle>
-              <p className="text-lg font-semibold text-primary">${item.sellPrice.toFixed(2)}</p>
+              <p className="text-lg font-semibold text-primary">{item.sellPrice.toLocaleString('fa-IR')} تومان</p>
             </CardHeader>
           </Card>
         );
@@ -150,8 +150,8 @@ export default function OrderClient() {
       <div className="lg:col-span-2">
         <Tabs defaultValue="foods">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="foods">Foods</TabsTrigger>
-            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="foods">غذاها</TabsTrigger>
+            <TabsTrigger value="products">محصولات</TabsTrigger>
           </TabsList>
           <TabsContent value="foods">
             <ItemGrid items={foods} />
@@ -166,10 +166,10 @@ export default function OrderClient() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5"/>
-            Current Order
+            سفارش فعلی
           </CardTitle>
           <div className="pt-4 space-y-2">
-            <Label htmlFor="customer-select">Customer</Label>
+            <Label htmlFor="customer-select">مشتری</Label>
             <Select
               value={selectedCustomerId}
               onValueChange={setSelectedCustomerId}
@@ -178,7 +178,7 @@ export default function OrderClient() {
               <SelectTrigger id="customer-select" className='w-full'>
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Select a customer" />
+                  <SelectValue placeholder="یک مشتری انتخاب کنید" />
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -194,14 +194,14 @@ export default function OrderClient() {
         <CardContent className="p-0">
           <div className="max-h-[30vh] overflow-y-auto px-6">
             {cart.length === 0 ? (
-              <p className="text-muted-foreground text-center py-10">Your cart is empty.</p>
+              <p className="text-muted-foreground text-center py-10">سبد خرید شما خالی است.</p>
             ) : (
               <div className="space-y-4">
                 {cart.map((cartItem) => (
                   <div key={cartItem.item.id} className="flex items-center gap-4">
                     <div className="flex-grow">
                       <p className="font-medium">{cartItem.item.name}</p>
-                      <p className="text-sm text-muted-foreground">${cartItem.item.sellPrice.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">{cartItem.item.sellPrice.toLocaleString('fa-IR')} تومان</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -235,38 +235,38 @@ export default function OrderClient() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4 mt-4 px-6">
             <Separator />
-            {selectedCustomer && selectedCustomer.name !== 'Walk-in Customer' && newBalance !== null && (
+            {selectedCustomer && selectedCustomer.name !== 'مشتری حضوری' && newBalance !== null && (
               <div className="w-full space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Current Balance</span>
-                  <span>${selectedCustomer.balance.toFixed(2)}</span>
+                  <span className="text-muted-foreground">موجودی فعلی</span>
+                  <span>{selectedCustomer.balance.toLocaleString('fa-IR')} تومان</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Order Total</span>
-                  <span>-${cartTotal.toFixed(2)}</span>
+                  <span className="text-muted-foreground">مجموع سفارش</span>
+                  <span>-{cartTotal.toLocaleString('fa-IR')} تومان</span>
                 </div>
                 <Separator/>
                 <div className="flex justify-between font-semibold text-base">
-                  <span className="text-muted-foreground">New Balance</span>
+                  <span className="text-muted-foreground">موجودی جدید</span>
                   <span className={cn(newBalance < 0 && 'text-destructive')}>
-                    ${newBalance.toFixed(2)}
+                    {newBalance.toLocaleString('fa-IR')} تومان
                   </span>
                 </div>
               </div>
             )}
 
             <div className="w-full flex justify-between text-lg font-semibold">
-                <span>Total</span>
-                <span>${cartTotal.toFixed(2)}</span>
+                <span>مجموع</span>
+                <span>{cartTotal.toLocaleString('fa-IR')} تومان</span>
             </div>
           <Button className="w-full bg-primary hover:bg-primary/90" size="lg" onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut}>
             {isCheckingOut ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                در حال پردازش...
               </>
             ) : (
-              'Checkout'
+              'تسویه حساب'
             )}
           </Button>
         </CardFooter>

@@ -28,30 +28,30 @@ const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p])
 export default function ProductsPage() {
   return (
     <div className="flex flex-col sm:gap-4 sm:py-4">
-      <Header breadcrumbs={[]} activeBreadcrumb="Products" />
+      <Header breadcrumbs={[]} activeBreadcrumb="محصولات" />
       <main className="flex-1 p-4 sm:px-6 sm:py-0">
-        <PageHeader title="Products">
+        <PageHeader title="محصولات">
             <Button>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+                <PlusCircle className="mr-2 h-4 w-4" /> افزودن محصول
             </Button>
         </PageHeader>
         <Card>
             <CardHeader>
-                <CardTitle>Product Inventory</CardTitle>
-                <CardDescription>Manage your products and view their inventory levels.</CardDescription>
+                <CardTitle>موجودی محصولات</CardTitle>
+                <CardDescription>محصولات خود را مدیریت کرده و سطح موجودی آنها را مشاهده کنید.</CardDescription>
             </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="hidden w-[100px] sm:table-cell">
-                    <span className="sr-only">Image</span>
+                    <span className="sr-only">تصویر</span>
                   </TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead className="hidden md:table-cell">Buy Price</TableHead>
-                  <TableHead>Sell Price</TableHead>
-                  <TableHead className="hidden md:table-cell">Created at</TableHead>
+                  <TableHead>نام</TableHead>
+                  <TableHead>موجودی</TableHead>
+                  <TableHead className="hidden md:table-cell">قیمت خرید</TableHead>
+                  <TableHead>قیمت فروش</TableHead>
+                  <TableHead className="hidden md:table-cell">تاریخ ایجاد</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -75,9 +75,9 @@ export default function ProductsPage() {
                             <TableCell>
                                 <Badge variant={product.stock > 20 ? 'outline' : 'destructive'}>{product.stock}</Badge>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell">${product.avgBuyPrice.toFixed(2)}</TableCell>
-                            <TableCell>${product.sellPrice.toFixed(2)}</TableCell>
-                            <TableCell className="hidden md:table-cell">{new Date().toLocaleDateString()}</TableCell>
+                            <TableCell className="hidden md:table-cell">{product.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
+                            <TableCell>{product.sellPrice.toLocaleString('fa-IR')} تومان</TableCell>
+                            <TableCell className="hidden md:table-cell">{new Date().toLocaleDateString('fa-IR')}</TableCell>
                         </TableRow>
                     )
                 })}
@@ -86,7 +86,7 @@ export default function ProductsPage() {
           </CardContent>
           <CardFooter>
             <div className="text-xs text-muted-foreground">
-              Showing <strong>1-{products.length}</strong> of <strong>{products.length}</strong> products
+              نمایش <strong>1-{products.length}</strong> از <strong>{products.length}</strong> محصول
             </div>
           </CardFooter>
         </Card>

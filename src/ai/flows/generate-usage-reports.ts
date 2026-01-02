@@ -15,7 +15,7 @@ const GenerateUsageReportInputSchema = z.object({});
 export type GenerateUsageReportInput = z.infer<typeof GenerateUsageReportInputSchema>;
 
 const GenerateUsageReportOutputSchema = z.object({
-  report: z.string().describe('A detailed report on predicted food usage and inventory optimization strategies.'),
+  report: z.string().describe('A detailed report on predicted food usage and inventory optimization strategies in Persian.'),
 });
 export type GenerateUsageReportOutput = z.infer<typeof GenerateUsageReportOutputSchema>;
 
@@ -27,7 +27,7 @@ const generateUsageReportPrompt = ai.definePrompt({
   name: 'generateUsageReportPrompt',
   input: {schema: GenerateUsageReportInputSchema},
   output: {schema: GenerateUsageReportOutputSchema},
-  prompt: `You are an expert gym buffet manager assistant. Analyze historical data to predict food usage and suggest inventory optimization strategies to minimize waste. Consider factors like day of the week, time of day, and seasonal trends.  Provide a detailed report.\n\n  Report: `,
+  prompt: `شما یک دستیار مدیر بوفه باشگاه متخصص هستید. داده‌های تاریخی را برای پیش‌بینی مصرف غذا تحلیل کرده و استراتژی‌های بهینه‌سازی موجودی را برای به حداقل رساندن ضایعات پیشنهاد دهید. عواملی مانند روز هفته، ساعت روز و روندهای فصلی را در نظر بگیرید. یک گزارش دقیق به زبان فارسی ارائه دهید.\n\n  گزارش: `,
 });
 
 const generateUsageReportFlow = ai.defineFlow(

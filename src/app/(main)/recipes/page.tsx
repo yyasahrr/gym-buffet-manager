@@ -29,11 +29,11 @@ const calculateCost = (recipe: typeof foods[0]['recipe']) => {
 export default function RecipesPage() {
   return (
     <div className="flex flex-col sm:gap-4 sm:py-4">
-      <Header breadcrumbs={[]} activeBreadcrumb="Recipes" />
+      <Header breadcrumbs={[]} activeBreadcrumb="دستور پخت‌ها" />
       <main className="flex-1 p-4 sm:px-6 sm:py-0">
-        <PageHeader title="Food Recipes">
+        <PageHeader title="دستور پخت غذاها">
           <Button>
-            <PlusCircle className="mr-2 h-4 w-4" /> Create Recipe
+            <PlusCircle className="mr-2 h-4 w-4" /> ایجاد دستور پخت
           </Button>
         </PageHeader>
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
@@ -59,7 +59,7 @@ export default function RecipesPage() {
                 </CardHeader>
                 <CardContent className="p-6">
                     <CardTitle className="mb-2">{food.name}</CardTitle>
-                    <CardDescription>Ingredients:</CardDescription>
+                    <CardDescription>مواد اولیه:</CardDescription>
                     <ul className="list-disc list-inside text-sm text-muted-foreground my-2">
                         {food.recipe.map(item => {
                             const ingredient = ingredientMap.get(item.ingredientId);
@@ -69,16 +69,16 @@ export default function RecipesPage() {
                     <Separator className="my-4" />
                     <div className="grid grid-cols-3 gap-2 text-center text-sm">
                         <div>
-                            <p className="font-semibold">${food.sellPrice.toFixed(2)}</p>
-                            <p className="text-xs text-muted-foreground">Sell Price</p>
+                            <p className="font-semibold">{food.sellPrice.toLocaleString('fa-IR')} تومان</p>
+                            <p className="text-xs text-muted-foreground">قیمت فروش</p>
                         </div>
                         <div>
-                            <p className="font-semibold">${cost.toFixed(2)}</p>
-                             <p className="text-xs text-muted-foreground">Cost</p>
+                            <p className="font-semibold">{cost.toLocaleString('fa-IR')} تومان</p>
+                             <p className="text-xs text-muted-foreground">هزینه</p>
                         </div>
                         <div>
-                            <p className="font-semibold text-primary">${profit.toFixed(2)}</p>
-                             <p className="text-xs text-muted-foreground">Profit</p>
+                            <p className="font-semibold text-primary">{profit.toLocaleString('fa-IR')} تومان</p>
+                             <p className="text-xs text-muted-foreground">سود</p>
                         </div>
                     </div>
                 </CardContent>
