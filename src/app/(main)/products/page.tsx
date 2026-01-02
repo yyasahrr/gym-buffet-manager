@@ -52,18 +52,20 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppData, dataStore } from '@/lib/store';
 
+type DialogState = {
+    isOpen: boolean;
+    mode: 'add' | 'edit';
+    product: Product | null;
+}
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 
 export default function ProductsPage() {
   const { products, orders } = useAppData();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    sellPrice: '',
-    imageId: 'protein_powder',
-  });
+  const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, mode: 'add', product: null });
+  const [formData, setFormData] = useState({ name: '', sellPrice: '' });
+  
   const { toast } = useToast();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('active');
@@ -74,9 +76,22 @@ export default function ProductsPage() {
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [products, searchQuery, activeTab]);
+
+  const openDialog = (mode: 'add' | 'edit', product: Product | null = null) => {
+    setDialogState({ isOpen: true, mode, product });
+    if (mode === 'edit' && product) {
+        setFormData({ name: product.name, sellPrice: String(product.sellPrice) });
+    } else {
+        setFormData({ name: '', sellPrice: '' });
+    }
+  };
+
+  const closeDialog = () => {
+    setDialogState({ isOpen: false, mode: 'add', product: null });
+  };
   
-  const handleAddProduct = () => {
-    const { name, sellPrice, imageId } = newProduct;
+  const handleSaveProduct = () => {
+    const { name, sellPrice } = formData;
     if (!name || !sellPrice || parseFloat(sellPrice) < 0) {
       toast({
         variant: "destructive",
@@ -85,27 +100,35 @@ export default function ProductsPage() {
       });
       return;
     }
-
-    const newProductData: Product = {
-      id: `prod-${Date.now()}`,
-      name,
-      stock: 0, 
-      avgBuyPrice: 0,
-      sellPrice: parseInt(sellPrice, 10),
-      imageId,
-      status: 'active',
-    };
-
-    const updatedProducts = [...products, newProductData];
-    dataStore.saveData({ products: updatedProducts });
     
-    toast({
-      title: "موفقیت‌آمیز",
-      description: `محصول "${name}" با موفقیت اضافه شد.`,
-    });
+    if (dialogState.mode === 'add') {
+        const newProductData: Product = {
+          id: `prod-${Date.now()}`,
+          name,
+          stock: 0, 
+          avgBuyPrice: 0,
+          sellPrice: parseInt(sellPrice, 10),
+          imageId: 'protein_powder', // default image
+          status: 'active',
+        };
 
-    setIsDialogOpen(false);
-    setNewProduct({ name: '', sellPrice: '', imageId: 'protein_powder' });
+        const updatedProducts = [...products, newProductData];
+        dataStore.saveData({ products: updatedProducts });
+        
+        toast({
+          title: "موفقیت‌آمیز",
+          description: `محصول "${name}" با موفقیت اضافه شد.`,
+        });
+    } else if (dialogState.mode === 'edit' && dialogState.product) {
+        const updatedProducts = products.map(p => 
+            p.id === dialogState.product!.id ? { ...p, name, sellPrice: parseInt(sellPrice, 10) } : p
+        );
+        dataStore.saveData({ products: updatedProducts });
+        toast({ title: "موفقیت‌آمیز", description: `محصول "${name}" با موفقیت ویرایش شد.` });
+    }
+
+
+    closeDialog();
   };
   
   const handleArchiveProduct = (productId: string) => {
@@ -187,7 +210,7 @@ export default function ProductsPage() {
                                 <TableCell className="align-middle">
                                     <Badge variant={product.stock > 0 ? 'outline' : 'destructive'}>{product.stock}</Badge>
                                 </TableCell>
-                                <TableCell className="hidden md:table-cell align-middle">{product.avgBuyPrice > 0 ? product.avgBuyPrice.toLocaleString('fa-IR') + ' تومان' : '-'}</TableCell>
+                                <TableCell className="hidden md:table-cell align-middle">{product.avgBuyPrice > 0 ? product.avgBuyPrice.toLocaleString('fa-IR') + ' تومان' : 'بدون سابقه خرید'}</TableCell>
                                 <TableCell className="align-middle">{product.sellPrice.toLocaleString('fa-IR')} تومان</TableCell>
                                 <TableCell className="text-left">
                                      <DropdownMenu open={openMenuId === product.id} onOpenChange={(isOpen) => setOpenMenuId(isOpen ? product.id : null)}>
@@ -200,9 +223,9 @@ export default function ProductsPage() {
                                         <DropdownMenuContent align="end">
                                         {product.status === 'active' ? (
                                             <>
-                                                <DropdownMenuItem disabled>
+                                                <DropdownMenuItem onClick={() => openDialog('edit', product)}>
                                                     <Pencil className="ml-2 h-4 w-4" />
-                                                    ویرایش (به زودی)
+                                                    ویرایش
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleArchiveProduct(product.id)}>
                                                     <Archive className="ml-2 h-4 w-4" />
@@ -266,32 +289,32 @@ export default function ProductsPage() {
         <Header onSearch={setSearchQuery} breadcrumbs={[]} activeBreadcrumb="محصولات" />
         <main className="flex-1 p-4 sm:px-6 sm:py-6">
             <PageHeader title="محصولات">
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <Dialog open={dialogState.isOpen} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
                     <DialogTrigger asChild>
-                        <Button>
+                        <Button onClick={() => openDialog('add')}>
                             <PlusCircle className="ml-2 h-4 w-4" /> افزودن محصول
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
-                            <DialogTitle>افزودن محصول جدید</DialogTitle>
+                            <DialogTitle>{dialogState.mode === 'add' ? 'افزودن محصول جدید' : 'ویرایش محصول'}</DialogTitle>
                             <DialogDescription>
-                                محصول جدید با موجودی اولیه صفر ایجاد می‌شود. برای افزایش موجودی به صفحه خرید مراجعه کنید.
+                                {dialogState.mode === 'add' && 'محصول جدید با موجودی اولیه صفر ایجاد می‌شود. برای افزایش موجودی به صفحه خرید مراجعه کنید.'}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="name" className="text-right">نام</Label>
-                                <Input id="name" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="col-span-3"/>
+                                <Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="col-span-3"/>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="sellPrice" className="text-right">قیمت فروش</Label>
-                                <Input id="sellPrice" type="number" value={newProduct.sellPrice} onChange={(e) => setNewProduct({...newProduct, sellPrice: e.target.value})} className="col-span-3"/>
+                                <Input id="sellPrice" type="number" value={formData.sellPrice} onChange={(e) => setFormData({...formData, sellPrice: e.target.value})} className="col-span-3"/>
                             </div>
                         </div>
                         <DialogFooter>
-                             <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>لغو</Button>
-                             <Button type="submit" onClick={handleAddProduct}>ذخیره محصول</Button>
+                             <Button type="button" variant="secondary" onClick={closeDialog}>لغو</Button>
+                             <Button type="submit" onClick={handleSaveProduct}>ذخیره</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
