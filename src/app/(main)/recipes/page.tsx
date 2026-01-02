@@ -57,14 +57,15 @@ export default function RecipesPage() {
         const loadedIngredients = storedIngredients ? JSON.parse(storedIngredients) : allInitialIngredients;
         setAllIngredients(loadedIngredients);
         
-        // Initialize selectedIngredients state based on loaded ingredients
-        const initialSelected = loadedIngredients.reduce((acc, ing) => {
+        const initialSelected = loadedIngredients.reduce((acc: Record<string, {checked: boolean, quantity: string}>, ing: Ingredient) => {
             acc[ing.id] = { checked: false, quantity: '' };
             return acc;
-        }, {} as Record<string, {checked: boolean, quantity: string}>);
+        }, {});
         setSelectedIngredients(initialSelected);
 
     }, []);
+    
+    const activeIngredients = useMemo(() => allIngredients.filter(i => i.status === 'active'), [allIngredients]);
 
     const ingredientMap = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
 
@@ -73,8 +74,6 @@ export default function RecipesPage() {
             const ingredient = ingredientMap.get(item.ingredientId);
             if (!ingredient || ingredient.avgBuyPrice <= 0) return total;
             
-            // Assuming avgBuyPrice is per the ingredient's base unit.
-            // This calculation is now robust.
             return total + (ingredient.avgBuyPrice * item.quantity);
         }, 0);
     };
@@ -116,11 +115,11 @@ export default function RecipesPage() {
         setIsDialogOpen(false);
         setNewRecipeName('');
         setNewRecipePrice('');
-        // Reset selected ingredients state
-        const resetSelected = allIngredients.reduce((acc, ing) => {
+        
+        const resetSelected = allIngredients.reduce((acc: Record<string, {checked: boolean, quantity: string}>, ing: Ingredient) => {
             acc[ing.id] = { checked: false, quantity: '' };
             return acc;
-        }, {} as Record<string, {checked: boolean, quantity: string}>);
+        }, {});
         setSelectedIngredients(resetSelected);
     };
 
@@ -152,7 +151,7 @@ export default function RecipesPage() {
                                     <Label>مواد اولیه</Label>
                                     <ScrollArea className="h-48 rounded-md border p-4">
                                         <div className="space-y-4">
-                                            {allIngredients.map(ing => (
+                                            {activeIngredients.map(ing => (
                                                 <div key={ing.id} className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <Checkbox
@@ -168,7 +167,7 @@ export default function RecipesPage() {
                                                                 setSelectedIngredients(current);
                                                             }}
                                                         />
-                                                        <Label htmlFor={`ing-${ing.id}`}>{ing.name} {ing.variantName ? `(${ing.variantName})` : ''}</Label>
+                                                        <Label htmlFor={`ing-${ing.id}`}>{ing.name}</Label>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Input
@@ -226,7 +225,7 @@ export default function RecipesPage() {
                             <ul className="list-disc list-inside text-sm text-muted-foreground my-2">
                                 {food.recipe.map(item => {
                                     const ingredient = ingredientMap.get(item.ingredientId);
-                                    return <li key={item.ingredientId}>{ingredient?.name} {ingredient?.variantName ? `(${ingredient.variantName})` : ''} ({item.quantity} {ingredient ? unitLabels[ingredient.unit] : ''})</li>
+                                    return <li key={item.ingredientId}>{ingredient?.name} ({item.quantity} {ingredient ? unitLabels[ingredient.unit] : ''})</li>
                                 })}
                             </ul>
                             <Separator className="my-4" />

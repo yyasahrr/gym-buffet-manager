@@ -23,8 +23,9 @@ export type Ingredient = {
   name: string;
   stock: number;
   avgBuyPrice: number; // Price per single unit ('g', 'ml', 'count')
-  imageUrl?: string; // Changed from imageId to store data URL
+  imageUrl?: string; 
   unit: Unit;
+  status: 'active' | 'archived';
 };
 
 export type RecipeItem = {

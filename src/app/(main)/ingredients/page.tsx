@@ -1,8 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { PlusCircle, Upload } from 'lucide-react';
-import { ingredients as initialIngredients } from '@/lib/data';
+import { PlusCircle, Upload, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { ingredients as initialIngredients, foods as initialFoods, purchases as initialPurchases } from '@/lib/data';
 import { type Ingredient, type Unit } from '@/lib/types';
 import { unitLabels } from '@/lib/types';
 import { Header } from '@/components/header';
@@ -36,17 +36,49 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
+const FOODS_STORAGE_KEY = 'gym-canteen-foods';
+const PURCHASES_STORAGE_KEY = 'gym-canteen-purchases';
+
+type DialogState = {
+    isOpen: boolean;
+    mode: 'add' | 'edit';
+    ingredient: Ingredient | null;
+}
 
 export default function IngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+    const [allFoods, setAllFoods] = useState(() => {
+        if (typeof window === 'undefined') return initialFoods;
+        const stored = localStorage.getItem(FOODS_STORAGE_KEY);
+        return stored ? JSON.parse(stored) : initialFoods;
+    });
+    const [allPurchases, setAllPurchases] = useState(() => {
+        if (typeof window === 'undefined') return initialPurchases;
+        const stored = localStorage.getItem(PURCHASES_STORAGE_KEY);
+        return stored ? JSON.parse(stored) : initialPurchases;
+    });
+
     const [searchQuery, setSearchQuery] = useState('');
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newIngredient, setNewIngredient] = useState<{name: string; unit: Unit, imageUrl?: string}>({ name: '', unit: 'g' });
+    const [dialogState, setDialogState] = useState<DialogState>({isOpen: false, mode: 'add', ingredient: null});
+    const [formData, setFormData] = useState<{name: string; unit: Unit, imageUrl?: string}>({ name: '', unit: 'g' });
+    
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -61,116 +93,112 @@ export default function IngredientsPage() {
         }
     }, []);
 
+    const activeIngredients = useMemo(() => {
+        return ingredients.filter(ing => ing.status !== 'archived');
+    }, [ingredients]);
+
     const filteredIngredients = useMemo(() => {
-        return ingredients.filter(ingredient =>
+        return activeIngredients.filter(ingredient =>
             ingredient.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
-    }, [ingredients, searchQuery]);
+    }, [activeIngredients, searchQuery]);
 
+    const openDialog = (mode: 'add' | 'edit', ingredient: Ingredient | null = null) => {
+        setDialogState({ isOpen: true, mode, ingredient });
+        if (mode === 'edit' && ingredient) {
+            setFormData({ name: ingredient.name, unit: ingredient.unit, imageUrl: ingredient.imageUrl });
+        } else {
+            setFormData({ name: '', unit: 'g' });
+        }
+    };
+    
+    const closeDialog = () => {
+        setDialogState({ isOpen: false, mode: 'add', ingredient: null });
+    };
+    
     const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setNewIngredient({ ...newIngredient, imageUrl: reader.result as string });
+                setFormData({ ...formData, imageUrl: reader.result as string });
             };
             reader.readAsDataURL(file);
         }
     };
     
-    const handleAddIngredient = () => {
-        const { name, unit, imageUrl } = newIngredient;
+    const handleSaveIngredient = () => {
+        const { name, unit, imageUrl } = formData;
         if (!name || !unit) {
-            toast({
-                variant: "destructive",
-                title: "خطا",
-                description: "لطفاً نام و واحد ماده اولیه را پر کنید.",
-            });
+            toast({ variant: "destructive", title: "خطا", description: "لطفاً نام و واحد ماده اولیه را پر کنید." });
             return;
         }
 
-        const newIngredientData: Ingredient = {
-            id: `ing-${Date.now()}`,
-            name,
-            stock: 0,
-            avgBuyPrice: 0,
-            imageUrl,
-            unit,
-        };
+        if (dialogState.mode === 'add') {
+            const newIngredientData: Ingredient = {
+                id: `ing-${Date.now()}`,
+                name,
+                stock: 0,
+                avgBuyPrice: 0,
+                imageUrl,
+                unit,
+                status: 'active',
+            };
+            const updatedIngredients = [...ingredients, newIngredientData];
+            setIngredients(updatedIngredients);
+            localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+            toast({ title: "موفقیت‌آمیز", description: `ماده اولیه "${name}" با موفقیت اضافه شد.` });
+        } else if (dialogState.mode === 'edit' && dialogState.ingredient) {
+            const updatedIngredients = ingredients.map(ing => 
+                ing.id === dialogState.ingredient!.id ? { ...ing, name, unit, imageUrl } : ing
+            );
+            setIngredients(updatedIngredients);
+            localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+            toast({ title: "موفقیت‌آمیز", description: `ماده اولیه "${name}" با موفقیت ویرایش شد.` });
+        }
 
-        const updatedIngredients = [...ingredients, newIngredientData];
-        setIngredients(updatedIngredients);
-        localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
-        
-        toast({
-            title: "موفقیت‌آمیز",
-            description: `ماده اولیه "${name}" با موفقیت اضافه شد. برای افزودن موجودی به صفحه خرید مراجعه کنید.`,
-        });
-
-        setIsDialogOpen(false);
-        setNewIngredient({ name: '', unit: 'g' });
+        closeDialog();
     };
+
+    const handleDeleteIngredient = (ingredientId: string) => {
+        const ingredient = ingredients.find(ing => ing.id === ingredientId);
+        if (!ingredient) return;
+
+        const isUsedInRecipe = allFoods.some(food => food.recipe.some(item => item.ingredientId === ingredientId));
+        const hasPurchaseHistory = allPurchases.some(purchase => purchase.ingredientId === ingredientId);
+
+        if (ingredient.stock > 0 || isUsedInRecipe || hasPurchaseHistory) {
+            // Archive the ingredient
+            const updatedIngredients = ingredients.map(ing => 
+                ing.id === ingredientId ? { ...ing, status: 'archived' } : ing
+            );
+            setIngredients(updatedIngredients);
+            localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+            toast({
+                title: "ماده اولیه بایگانی شد",
+                description: "این ماده اولیه به دلیل داشتن موجودی یا سابقه استفاده، به جای حذف، بایگانی شد.",
+            });
+        } else {
+            // Hard delete the ingredient
+            const updatedIngredients = ingredients.filter(ing => ing.id !== ingredientId);
+            setIngredients(updatedIngredients);
+            localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+            toast({
+                title: "ماده اولیه حذف شد",
+                description: `"${ingredient.name}" برای همیشه حذف شد.`,
+            });
+        }
+    };
+
 
     return (
         <div className="flex flex-col h-full">
             <Header onSearch={setSearchQuery} breadcrumbs={[]} activeBreadcrumb="مواد اولیه" />
             <main className="flex-1 p-4 sm:px-6 sm:py-6">
                 <PageHeader title="مواد اولیه">
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <PlusCircle className="ml-2 h-4 w-4" /> افزودن نوع ماده اولیه
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>افزودن نوع ماده اولیه جدید</DialogTitle>
-                                <DialogDescription>
-                                    موجودی اولیه صفر است. برای افزودن موجودی به صفحه خرید مراجعه کنید.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor="name" className="text-right">نام</Label>
-                                  <Input
-                                    id="name"
-                                    value={newIngredient.name}
-                                    onChange={(e) => setNewIngredient({ ...newIngredient, name: e.target.value })}
-                                    className="col-span-3"
-                                    placeholder="مثال: سینه مرغ"
-                                  />
-                                </div>
-                                
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="unit" className="text-right">واحد پایه</Label>
-                                    <Select value={newIngredient.unit} onValueChange={(value) => setNewIngredient({...newIngredient, unit: value as Unit})}>
-                                        <SelectTrigger className="col-span-3">
-                                            <SelectValue placeholder="انتخاب واحد" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {Object.entries(unitLabels).map(([key, label]) => (
-                                                <SelectItem key={key} value={key}>{label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="image-upload" className="text-right">تصویر</Label>
-                                    <div className="col-span-3">
-                                        <Input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                                        <Label htmlFor="image-upload" className="cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-4 text-sm text-muted-foreground hover:bg-muted">
-                                            {newIngredient.imageUrl ? <Image src={newIngredient.imageUrl} alt="Preview" width={80} height={80} className="rounded-md object-cover"/> : <><Upload className="mr-2 h-4 w-4"/> <span>آپلود تصویر</span></>}
-                                        </Label>
-                                    </div>
-                                </div>
-
-                            </div>
-                            <DialogFooter>
-                                <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>لغو</Button>
-                                <Button type="submit" onClick={handleAddIngredient}>ذخیره</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <Button onClick={() => openDialog('add')}>
+                        <PlusCircle className="ml-2 h-4 w-4" /> افزودن نوع ماده اولیه
+                    </Button>
                 </PageHeader>
                 <Card>
                     <CardHeader>
@@ -181,18 +209,21 @@ export default function IngredientsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                <TableHead className="hidden w-[100px] sm:table-cell">
-                                    <span className="sr-only">تصویر</span>
-                                </TableHead>
-                                <TableHead>نام</TableHead>
-                                <TableHead>موجودی</TableHead>
-                                <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
+                                    <TableHead className="hidden w-[100px] sm:table-cell">
+                                        <span className="sr-only">تصویر</span>
+                                    </TableHead>
+                                    <TableHead>نام</TableHead>
+                                    <TableHead>موجودی</TableHead>
+                                    <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
+                                    <TableHead>
+                                        <span className="sr-only">عملیات</span>
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isClient && filteredIngredients.map(ingredient => {
                                     const stockToDisplay = ingredient.stock;
-                                    const unitLabel = unitLabels[ingredient.unit];
+                                    const unitLabel = unitLabels[ingredient.unit] || '';
                                     
                                     return (
                                         <TableRow key={ingredient.id}>
@@ -215,7 +246,50 @@ export default function IngredientsPage() {
                                             <TableCell className="align-middle">
                                                 <Badge variant={stockToDisplay > 0 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
                                             </TableCell>
-                                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice > 0 ? `${Math.round(ingredient.avgBuyPrice).toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}</TableCell>
+                                            <TableCell className="hidden md:table-cell align-middle">
+                                                {ingredient.avgBuyPrice > 0 ? `${Math.round(ingredient.avgBuyPrice).toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}
+                                            </TableCell>
+                                            <TableCell className="text-left">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <span className="sr-only">باز کردن منو</span>
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => openDialog('edit', ingredient)}>
+                                                            <Pencil className="ml-2 h-4 w-4" />
+                                                            ویرایش
+                                                        </DropdownMenuItem>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                                    <Trash2 className="ml-2 h-4 w-4 text-destructive" />
+                                                                    <span className="text-destructive">حذف</span>
+                                                                </DropdownMenuItem>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>آیا مطمئن هستید؟</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        این عمل غیرقابل بازگشت است. در صورتی که این ماده اولیه موجودی یا سابقه خرید/مصرف داشته باشد، به جای حذف دائمی، بایگانی (غیرفعال) خواهد شد.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>لغو</AlertDialogCancel>
+                                                                    <AlertDialogAction
+                                                                        className="bg-destructive hover:bg-destructive/90"
+                                                                        onClick={() => handleDeleteIngredient(ingredient.id)}
+                                                                    >
+                                                                        تایید و حذف
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
                                         </TableRow>
                                     )
                                 })}
@@ -224,10 +298,62 @@ export default function IngredientsPage() {
                     </CardContent>
                     <CardFooter>
                         <div className="text-xs text-muted-foreground">
-                        نمایش <strong>{filteredIngredients.length}</strong> از <strong>{ingredients.length}</strong> ماده اولیه
+                        نمایش <strong>{filteredIngredients.length}</strong> از <strong>{activeIngredients.length}</strong> ماده اولیه فعال
                         </div>
                     </CardFooter>
                 </Card>
+                
+                {/* Add/Edit Dialog */}
+                <Dialog open={dialogState.isOpen} onOpenChange={ (isOpen) => !isOpen && closeDialog() }>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>{dialogState.mode === 'add' ? 'افزودن نوع ماده اولیه' : 'ویرایش ماده اولیه'}</DialogTitle>
+                            <DialogDescription>
+                                {dialogState.mode === 'add' && 'موجودی اولیه صفر است. برای افزودن موجودی به صفحه خرید مراجعه کنید.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="name" className="text-right">نام</Label>
+                                <Input
+                                id="name"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                className="col-span-3"
+                                placeholder="مثال: سینه مرغ"
+                                />
+                            </div>
+                            
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="unit" className="text-right">واحد پایه</Label>
+                                <Select value={formData.unit} onValueChange={(value) => setFormData({...formData, unit: value as Unit})}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="انتخاب واحد" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(unitLabels).map(([key, label]) => (
+                                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="image-upload" className="text-right">تصویر</Label>
+                                <div className="col-span-3">
+                                    <Input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                    <Label htmlFor="image-upload" className="cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-4 text-sm text-muted-foreground hover:bg-muted">
+                                        {formData.imageUrl ? <Image src={formData.imageUrl} alt="Preview" width={80} height={80} className="rounded-md object-cover"/> : <><Upload className="mr-2 h-4 w-4"/> <span>آپلود تصویر</span></>}
+                                    </Label>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="secondary" onClick={closeDialog}>لغو</Button>
+                            <Button type="submit" onClick={handleSaveIngredient}>ذخیره</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
             </main>
         </div>
     );

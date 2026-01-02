@@ -78,6 +78,7 @@ export default function PurchasesPage() {
     setPurchases(storedPurchases ? JSON.parse(storedPurchases) : initialPurchases);
   }, []);
 
+  const activeIngredients = useMemo(() => ingredients.filter(i => i.status === 'active'), [ingredients]);
   const ingredientMap = useMemo(() => new Map(ingredients.map(i => [i.id, i])), [ingredients]);
 
   const resetForm = () => {
@@ -125,7 +126,6 @@ export default function PurchasesPage() {
         const currentTotalValue = ing.avgBuyPrice * ing.stock;
         const newTotalStock = ing.stock + qty;
         
-        // The price is for the entire quantity purchased (e.g. price for 3 cases)
         const newPurchaseValue = price; 
         const newTotalValue = currentTotalValue + newPurchaseValue;
         const newAvgPrice = newTotalStock > 0 ? newTotalValue / newTotalStock : 0;
@@ -185,7 +185,7 @@ export default function PurchasesPage() {
                       <SelectValue placeholder="انتخاب ماده اولیه" />
                     </SelectTrigger>
                     <SelectContent>
-                      {ingredients.map(ing => (
+                      {activeIngredients.map(ing => (
                         <SelectItem key={ing.id} value={ing.id}>{ing.name}</SelectItem>
                       ))}
                     </SelectContent>
