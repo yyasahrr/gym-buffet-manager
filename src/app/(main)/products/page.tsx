@@ -47,8 +47,6 @@ export default function ProductsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '',
-    stock: '',
-    avgBuyPrice: '',
     sellPrice: '',
     imageId: 'protein_powder',
   });
@@ -71,12 +69,12 @@ export default function ProductsPage() {
   }, [products, searchQuery]);
   
   const handleAddProduct = () => {
-    const { name, stock, avgBuyPrice, sellPrice, imageId } = newProduct;
-    if (!name || !stock || !avgBuyPrice || !sellPrice) {
+    const { name, sellPrice, imageId } = newProduct;
+    if (!name || !sellPrice || parseFloat(sellPrice) < 0) {
       toast({
         variant: "destructive",
         title: "خطا",
-        description: "لطفاً تمام فیلدها را پر کنید.",
+        description: "لطفاً نام و قیمت فروش معتبر وارد کنید.",
       });
       return;
     }
@@ -84,8 +82,8 @@ export default function ProductsPage() {
     const newProductData: Product = {
       id: `prod-${Date.now()}`,
       name,
-      stock: parseInt(stock, 10),
-      avgBuyPrice: parseInt(avgBuyPrice, 10),
+      stock: 0, // Initial stock is always 0
+      avgBuyPrice: 0, // Initial avgBuyPrice is always 0
       sellPrice: parseInt(sellPrice, 10),
       imageId,
     };
@@ -100,7 +98,7 @@ export default function ProductsPage() {
     });
 
     setIsDialogOpen(false);
-    setNewProduct({ name: '', stock: '', avgBuyPrice: '', sellPrice: '', imageId: 'protein_powder' });
+    setNewProduct({ name: '', sellPrice: '', imageId: 'protein_powder' });
   };
 
   return (
@@ -118,21 +116,13 @@ export default function ProductsPage() {
                         <DialogHeader>
                             <DialogTitle>افزودن محصول جدید</DialogTitle>
                             <DialogDescription>
-                                اطلاعات محصول جدید را برای افزودن به لیست وارد کنید.
+                                محصول جدید با موجودی اولیه صفر ایجاد می‌شود. برای افزایش موجودی به صفحه خرید مراجعه کنید.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="name" className="text-right">نام</Label>
                                 <Input id="name" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="col-span-3"/>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="stock" className="text-right">موجودی</Label>
-                                <Input id="stock" type="number" value={newProduct.stock} onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})} className="col-span-3"/>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="avgBuyPrice" className="text-right">قیمت خرید</Label>
-                                <Input id="avgBuyPrice" type="number" value={newProduct.avgBuyPrice} onChange={(e) => setNewProduct({...newProduct, avgBuyPrice: e.target.value})} className="col-span-3"/>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="sellPrice" className="text-right">قیمت فروش</Label>
@@ -160,7 +150,7 @@ export default function ProductsPage() {
                             </TableHead>
                             <TableHead>نام</TableHead>
                             <TableHead>موجودی</TableHead>
-                            <TableHead className="hidden md:table-cell">قیمت خرید</TableHead>
+                            <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
                             <TableHead>قیمت فروش</TableHead>
                             <TableHead className="hidden md:table-cell">تاریخ ایجاد</TableHead>
                             </TableRow>
@@ -184,7 +174,7 @@ export default function ProductsPage() {
                                         </TableCell>
                                         <TableCell className="font-medium align-middle">{product.name}</TableCell>
                                         <TableCell className="align-middle">
-                                            <Badge variant={product.stock > 20 ? 'outline' : 'destructive'}>{product.stock}</Badge>
+                                            <Badge variant={product.stock > 0 ? 'outline' : 'destructive'}>{product.stock}</Badge>
                                         </TableCell>
                                         <TableCell className="hidden md:table-cell align-middle">{product.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
                                         <TableCell className="align-middle">{product.sellPrice.toLocaleString('fa-IR')} تومان</TableCell>

@@ -56,7 +56,7 @@ export default function IngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newIngredient, setNewIngredient] = useState<{name: string; variantName: string; stock: string; avgBuyPrice: string; unit: Unit, imageUrl?: string}>({ name: '', variantName: '', stock: '0', avgBuyPrice: '0', unit: 'g' });
+    const [newIngredient, setNewIngredient] = useState<{name: string; variantName: string; unit: Unit, imageUrl?: string}>({ name: '', variantName: '', unit: 'g' });
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -74,7 +74,7 @@ export default function IngredientsPage() {
     const filteredIngredients = useMemo(() => {
         return ingredients.filter(ingredient =>
             ingredient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            ingredient.variantName?.toLowerCase().includes(searchQuery.toLowerCase())
+            (ingredient.variantName && ingredient.variantName.toLowerCase().includes(searchQuery.toLowerCase()))
         );
     }, [ingredients, searchQuery]);
 
@@ -90,7 +90,7 @@ export default function IngredientsPage() {
     };
     
     const handleAddIngredient = () => {
-        const { name, variantName, stock, avgBuyPrice, unit, imageUrl } = newIngredient;
+        const { name, variantName, unit, imageUrl } = newIngredient;
         if (!name || !unit) {
             toast({
                 variant: "destructive",
@@ -104,8 +104,8 @@ export default function IngredientsPage() {
             id: `ing-${Date.now()}`,
             name,
             variantName: variantName || undefined,
-            stock: parseInt(stock, 10) || 0,
-            avgBuyPrice: parseInt(avgBuyPrice, 10) || 0,
+            stock: 0,
+            avgBuyPrice: 0,
             imageUrl,
             unit,
         };
@@ -120,7 +120,7 @@ export default function IngredientsPage() {
         });
 
         setIsDialogOpen(false);
-        setNewIngredient({ name: '', variantName: '', stock: '0', avgBuyPrice: '0', unit: 'g' });
+        setNewIngredient({ name: '', variantName: '', unit: 'g' });
     };
 
     return (
@@ -138,7 +138,7 @@ export default function IngredientsPage() {
                             <DialogHeader>
                                 <DialogTitle>افزودن نوع ماده اولیه جدید</DialogTitle>
                                 <DialogDescription>
-                                    یک نوع ماده اولیه جدید به انبار خود اضافه کنید. موجودی را از صفحه خرید اضافه کنید.
+                                    ماده اولیه جدید با موجودی اولیه صفر ایجاد می‌شود. برای افزایش موجودی به صفحه خرید مراجعه کنید.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
@@ -166,7 +166,7 @@ export default function IngredientsPage() {
                                     </Select>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="unit" className="text-right">واحد</Label>
+                                    <Label htmlFor="unit" className="text-right">واحد پایه</Label>
                                     <Select value={newIngredient.unit} onValueChange={(value) => setNewIngredient({...newIngredient, unit: value as Unit})}>
                                         <SelectTrigger className="col-span-3">
                                             <SelectValue placeholder="انتخاب واحد" />
@@ -238,9 +238,9 @@ export default function IngredientsPage() {
                                             </TableCell>
                                             <TableCell className="font-medium align-middle">{displayName}</TableCell>
                                             <TableCell className="align-middle">
-                                                <Badge variant={stockToDisplay > 20 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
+                                                <Badge variant={stockToDisplay > 0 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
                                             </TableCell>
-                                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان / {unitLabel}</TableCell>
+                                            <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice > 0 ? `${ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}</TableCell>
                                         </TableRow>
                                     )
                                 })}
