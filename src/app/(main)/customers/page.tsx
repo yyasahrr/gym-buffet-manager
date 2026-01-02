@@ -43,6 +43,7 @@ export default function CustomersPage() {
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerCredit, setNewCustomerCredit] = useState('');
   const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleAddCustomer = () => {
     if (!newCustomerName || !newCustomerCredit) {
@@ -69,6 +70,7 @@ export default function CustomersPage() {
 
     setNewCustomerName('');
     setNewCustomerCredit('');
+    setIsDialogOpen(false);
   };
 
   return (
@@ -76,7 +78,7 @@ export default function CustomersPage() {
       <Header breadcrumbs={[]} activeBreadcrumb="مشتریان" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="مشتریان">
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="ml-2 h-4 w-4" /> افزودن مشتری
@@ -122,9 +124,7 @@ export default function CustomersPage() {
                     لغو
                   </Button>
                 </DialogClose>
-                <DialogClose asChild>
-                  <Button type="submit" onClick={handleAddCustomer}>ذخیره مشتری</Button>
-                </DialogClose>
+                <Button type="submit" onClick={handleAddCustomer}>ذخیره مشتری</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
