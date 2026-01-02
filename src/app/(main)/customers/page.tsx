@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { customers as initialCustomers, Customer } from '@/lib/data';
 import { Header } from '@/components/header';
@@ -32,7 +32,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +41,7 @@ const CUSTOMERS_STORAGE_KEY = 'gym-canteen-customers';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerCredit, setNewCustomerCredit] = useState('');
   const { toast } = useToast();
@@ -56,6 +56,12 @@ export default function CustomersPage() {
       localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(initialCustomers));
     }
   }, []);
+  
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(customer =>
+        customer.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [customers, searchQuery]);
 
   const handleAddCustomer = () => {
     if (!newCustomerName || !newCustomerCredit) {
@@ -90,7 +96,7 @@ export default function CustomersPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header breadcrumbs={[]} activeBreadcrumb="مشتریان" />
+      <Header onSearch={setSearchQuery} breadcrumbs={[]} activeBreadcrumb="مشتریان" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="مشتریان">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -162,7 +168,7 @@ export default function CustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map(customer => (
+                {filteredCustomers.map(customer => (
                   <TableRow key={customer.id}>
                     <TableCell className="hidden sm:table-cell align-middle">
                       <Avatar>
@@ -189,7 +195,7 @@ export default function CustomersPage() {
           </CardContent>
           <CardFooter>
             <div className="text-xs text-muted-foreground">
-              نمایش <strong>1-{customers.length}</strong> از <strong>{customers.length}</strong> مشتری
+              نمایش <strong>{filteredCustomers.length}</strong> از <strong>{customers.length}</strong> مشتری
             </div>
           </CardFooter>
         </Card>

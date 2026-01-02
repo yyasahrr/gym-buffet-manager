@@ -1,5 +1,8 @@
 import type { Product, Ingredient, Food, Order, Customer } from './types';
 
+// IMPORTANT: This file is now used only for INITIAL data seeding.
+// All subsequent data is managed via localStorage in the respective pages.
+
 export const products: Product[] = [
   { id: 'prod-1', name: 'پروتئین وی', stock: 100, avgBuyPrice: 350000, sellPrice: 500000, imageId: 'protein_powder' },
   { id: 'prod-2', name: 'کراتین', stock: 50, avgBuyPrice: 150000, sellPrice: 250000, imageId: 'creatine_powder' },

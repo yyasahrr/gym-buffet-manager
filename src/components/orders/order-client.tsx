@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Plus, Minus, Trash2, ShoppingCart, Loader2, User } from 'lucide-react';
-import { products, foods, ingredients, customers as initialCustomers } from '@/lib/data';
+import { products as initialProducts, foods as initialFoods, ingredients as initialIngredients, customers as initialCustomers } from '@/lib/data';
 import type { OrderItem, Product, Food, Customer } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
 
@@ -21,28 +21,25 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '../ui/label';
 import { cn } from '@/lib/utils';
+import { Input } from '../ui/input';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 const CUSTOMERS_STORAGE_KEY = 'gym-canteen-customers';
-
-function getItemCost(item: Product | Food): number {
-  if ('avgBuyPrice' in item) {
-    return item.avgBuyPrice;
-  }
-  
-  const ingredientMap = new Map(ingredients.map(i => [i.id, i]));
-  return item.recipe.reduce((total, recipeItem) => {
-    const ingredient = ingredientMap.get(recipeItem.ingredientId);
-    return total + (ingredient ? ingredient.avgBuyPrice * recipeItem.quantity : 0);
-  }, 0);
-}
+const PRODUCTS_STORAGE_KEY = 'gym-canteen-products';
+const FOODS_STORAGE_KEY = 'gym-canteen-foods';
+const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
 
 export default function OrderClient() {
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [foods, setFoods] = useState<Food[]>([]);
+  const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
+  
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const storedCustomers = localStorage.getItem(CUSTOMERS_STORAGE_KEY);
@@ -55,7 +52,29 @@ export default function OrderClient() {
     } else if (loadedCustomers.length > 0) {
       setSelectedCustomerId(loadedCustomers[0].id);
     }
+    
+    const storedProducts = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+    setProducts(storedProducts ? JSON.parse(storedProducts) : initialProducts);
+    
+    const storedFoods = localStorage.getItem(FOODS_STORAGE_KEY);
+    setFoods(storedFoods ? JSON.parse(storedFoods) : initialFoods);
+
+    const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
+    setAllIngredients(storedIngredients ? JSON.parse(storedIngredients) : initialIngredients);
+
   }, []);
+
+  const ingredientMap = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
+
+  function getItemCost(item: Product | Food): number {
+    if ('avgBuyPrice' in item) {
+      return item.avgBuyPrice;
+    }
+    return item.recipe.reduce((total, recipeItem) => {
+      const ingredient = ingredientMap.get(recipeItem.ingredientId);
+      return total + (ingredient ? ingredient.avgBuyPrice * recipeItem.quantity : 0);
+    }, 0);
+  }
 
   const selectedCustomer = useMemo(() => {
     return customers.find(c => c.id === selectedCustomerId);
@@ -114,7 +133,6 @@ export default function OrderClient() {
 
     setIsCheckingOut(true);
     
-    // Simulate API call
     setTimeout(() => {
         if (selectedCustomer && newBalance !== null) {
           const updatedCustomers = customers.map(c => 
@@ -139,6 +157,9 @@ export default function OrderClient() {
         setIsCheckingOut(false);
     }, 1500);
   }
+
+  const filteredFoods = useMemo(() => foods.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())), [foods, searchQuery]);
+  const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())), [products, searchQuery]);
 
   const ItemGrid = ({ items }: { items: (Product | Food)[] }) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -168,16 +189,23 @@ export default function OrderClient() {
   return (
     <div className="grid lg:grid-cols-3 gap-8 items-start">
       <div className="lg:col-span-2">
+        <div className='mb-4'>
+            <Input 
+                placeholder="جستجوی غذا یا محصول..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+            />
+        </div>
         <Tabs defaultValue="foods">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="foods">غذاها</TabsTrigger>
             <TabsTrigger value="products">محصولات</TabsTrigger>
           </TabsList>
           <TabsContent value="foods">
-            <ItemGrid items={foods} />
+            <ItemGrid items={filteredFoods} />
           </TabsContent>
           <TabsContent value="products">
-            <ItemGrid items={products} />
+            <ItemGrid items={filteredProducts} />
           </TabsContent>
         </Tabs>
       </div>
@@ -253,43 +281,45 @@ export default function OrderClient() {
             )}
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4 mt-4 px-6">
-            <Separator />
-            {selectedCustomer && selectedCustomer.name !== 'مشتری حضوری' && newBalance !== null && (
-              <div className="w-full space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">موجودی فعلی</span>
-                  <span>{selectedCustomer.balance.toLocaleString('fa-IR')} تومان</span>
+        {cart.length > 0 && (
+            <CardFooter className="flex flex-col gap-4 mt-4 px-6">
+                <Separator />
+                {selectedCustomer && selectedCustomer.name !== 'مشتری حضوری' && newBalance !== null && (
+                <div className="w-full space-y-2 text-sm">
+                    <div className="flex justify-between">
+                    <span className="text-muted-foreground">موجودی فعلی</span>
+                    <span>{selectedCustomer.balance.toLocaleString('fa-IR')} تومان</span>
+                    </div>
+                    <div className="flex justify-between">
+                    <span className="text-muted-foreground">مجموع سفارش</span>
+                    <span>-{cartTotal.toLocaleString('fa-IR')} تومان</span>
+                    </div>
+                    <Separator/>
+                    <div className="flex justify-between font-semibold text-base">
+                    <span className="text-muted-foreground">موجودی جدید</span>
+                    <span className={cn(newBalance < 0 && 'text-destructive')}>
+                        {newBalance.toLocaleString('fa-IR')} تومان
+                    </span>
+                    </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">مجموع سفارش</span>
-                  <span>-{cartTotal.toLocaleString('fa-IR')} تومان</span>
-                </div>
-                <Separator/>
-                <div className="flex justify-between font-semibold text-base">
-                  <span className="text-muted-foreground">موجودی جدید</span>
-                  <span className={cn(newBalance < 0 && 'text-destructive')}>
-                    {newBalance.toLocaleString('fa-IR')} تومان
-                  </span>
-                </div>
-              </div>
-            )}
+                )}
 
-            <div className="w-full flex justify-between text-lg font-semibold">
-                <span>مجموع</span>
-                <span>{cartTotal.toLocaleString('fa-IR')} تومان</span>
-            </div>
-          <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" size="lg" onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut}>
-            {isCheckingOut ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                در حال پردازش...
-              </>
-            ) : (
-              'تسویه حساب'
-            )}
-          </Button>
-        </CardFooter>
+                <div className="w-full flex justify-between text-lg font-semibold">
+                    <span>مجموع</span>
+                    <span>{cartTotal.toLocaleString('fa-IR')} تومان</span>
+                </div>
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" size="lg" onClick={handleCheckout} disabled={isCheckingOut}>
+                {isCheckingOut ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    در حال پردازش...
+                </>
+                ) : (
+                'تسویه حساب'
+                )}
+            </Button>
+            </CardFooter>
+        )}
       </Card>
     </div>
   );
