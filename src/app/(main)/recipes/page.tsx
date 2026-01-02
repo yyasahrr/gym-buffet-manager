@@ -2,7 +2,8 @@
 
 import { PlusCircle } from 'lucide-react';
 import Image from 'next/image';
-import { foods as initialFoods, ingredients as allInitialIngredients, Food, Ingredient, RecipeItem, unitLabels } from '@/lib/data';
+import { foods as initialFoods, ingredients as allInitialIngredients, Food, Ingredient, RecipeItem } from '@/lib/data';
+import { unitLabels } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
