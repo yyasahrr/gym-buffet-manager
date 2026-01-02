@@ -67,11 +67,11 @@ export default function PurchasesPage() {
 
   const handleAddPurchase = () => {
     const { ingredientId, quantity, purchasePrice, date } = newPurchase;
-    if (!ingredientId || !quantity || !purchasePrice) {
+    if (!ingredientId || !quantity || !purchasePrice || parseFloat(quantity) <= 0 || parseFloat(purchasePrice) <= 0) {
       toast({
         variant: 'destructive',
         title: 'خطا',
-        description: 'لطفاً تمام فیلدهای لازم را پر کنید.',
+        description: 'لطفاً تمام فیلدها را با مقادیر معتبر پر کنید.',
       });
       return;
     }
@@ -87,8 +87,9 @@ export default function PurchasesPage() {
       if (ing.id === ingredientId) {
         const currentTotalValue = ing.avgBuyPrice * ing.stock;
         const newTotalStock = ing.stock + qty;
-        const newTotalValue = currentTotalValue + price;
-        const newAvgPrice = newTotalValue / newTotalStock;
+        const newPurchaseValue = price; // The total price for the new quantity
+        const newTotalValue = currentTotalValue + newPurchaseValue;
+        const newAvgPrice = newTotalStock > 0 ? newTotalValue / newTotalStock : 0;
         return { ...ing, stock: newTotalStock, avgBuyPrice: newAvgPrice };
       }
       return ing;
@@ -153,7 +154,7 @@ export default function PurchasesPage() {
 
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="quantity" className="text-right">
-                    مقدار ({selectedIngredientForDialog ? unitLabels[selectedIngredientForDialog.unit] : '-'})
+                    مقدار {selectedIngredientForDialog ? `(${unitLabels[selectedIngredientForDialog.unit]})` : ''}
                   </Label>
                   <Input
                     id="quantity"
@@ -162,6 +163,7 @@ export default function PurchasesPage() {
                     onChange={(e) => setNewPurchase({ ...newPurchase, quantity: e.target.value })}
                     className="col-span-3"
                     disabled={!newPurchase.ingredientId}
+                    placeholder="مثال: 2.5"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -175,6 +177,7 @@ export default function PurchasesPage() {
                     onChange={(e) => setNewPurchase({ ...newPurchase, purchasePrice: e.target.value })}
                     className="col-span-3"
                     disabled={!newPurchase.ingredientId}
+                    placeholder="مثال: 250000"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -194,7 +197,7 @@ export default function PurchasesPage() {
                 <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
                   لغو
                 </Button>
-                <Button type="submit" onClick={handleAddPurchase}>
+                <Button type="submit" onClick={handleAddPurchase} disabled={!newPurchase.ingredientId || !newPurchase.quantity || !newPurchase.purchasePrice}>
                   ثبت
                 </Button>
               </DialogFooter>
