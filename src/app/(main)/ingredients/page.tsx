@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { PlusCircle } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { ingredients as initialIngredients, Ingredient } from '@/lib/data';
+import { ingredients as initialIngredients, Ingredient, Unit, unitLabels } from '@/lib/data';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
@@ -46,10 +47,12 @@ export default function IngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newIngredient, setNewIngredient] = useState({ name: '', stock: '', avgBuyPrice: '' });
+    const [newIngredient, setNewIngredient] = useState<{name: string; stock: string; avgBuyPrice: string; unit: Unit}>({ name: '', stock: '', avgBuyPrice: '', unit: 'g' });
     const { toast } = useToast();
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
         const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
         if (storedIngredients) {
             setIngredients(JSON.parse(storedIngredients));
@@ -66,8 +69,8 @@ export default function IngredientsPage() {
     }, [ingredients, searchQuery]);
 
     const handleAddIngredient = () => {
-        const { name, stock, avgBuyPrice } = newIngredient;
-        if (!name || !stock || !avgBuyPrice) {
+        const { name, stock, avgBuyPrice, unit } = newIngredient;
+        if (!name || !stock || !avgBuyPrice || !unit) {
             toast({
                 variant: "destructive",
                 title: "خطا",
@@ -82,6 +85,7 @@ export default function IngredientsPage() {
             stock: parseInt(stock, 10),
             avgBuyPrice: parseInt(avgBuyPrice, 10),
             imageId: 'tomato', // Default image
+            unit,
         };
 
         const updatedIngredients = [...ingredients, newIngredientData];
@@ -94,7 +98,7 @@ export default function IngredientsPage() {
         });
 
         setIsDialogOpen(false);
-        setNewIngredient({ name: '', stock: '', avgBuyPrice: '' });
+        setNewIngredient({ name: '', stock: '', avgBuyPrice: '', unit: 'g' });
     };
 
     return (
@@ -119,6 +123,19 @@ export default function IngredientsPage() {
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="name" className="text-right">نام</Label>
                                     <Input id="name" value={newIngredient.name} onChange={(e) => setNewIngredient({...newIngredient, name: e.target.value})} className="col-span-3"/>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="unit" className="text-right">واحد</Label>
+                                    <Select value={newIngredient.unit} onValueChange={(value) => setNewIngredient({...newIngredient, unit: value as Unit})}>
+                                        <SelectTrigger className="col-span-3">
+                                            <SelectValue placeholder="انتخاب واحد" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(unitLabels).map(([key, label]) => (
+                                                <SelectItem key={key} value={key}>{label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="stock" className="text-right">موجودی</Label>
@@ -149,13 +166,13 @@ export default function IngredientsPage() {
                                     <span className="sr-only">تصویر</span>
                                 </TableHead>
                                 <TableHead>نام</TableHead>
-                                <TableHead>موجودی (واحد)</TableHead>
-                                <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
+                                <TableHead>موجودی</TableHead>
+                                <TableHead className="hidden md:table-cell">میانگین قیمت خرید (به ازای هر واحد)</TableHead>
                                 <TableHead className="hidden md:table-cell">تاریخ ایجاد</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredIngredients.map(ingredient => {
+                                {isClient && filteredIngredients.map(ingredient => {
                                     const image = imageMap.get(ingredient.imageId);
                                     return (
                                         <TableRow key={ingredient.id}>
@@ -173,7 +190,7 @@ export default function IngredientsPage() {
                                             </TableCell>
                                             <TableCell className="font-medium align-middle">{ingredient.name}</TableCell>
                                             <TableCell className="align-middle">
-                                            <Badge variant={ingredient.stock > 20 ? 'outline' : 'destructive'}>{ingredient.stock}</Badge>
+                                                <Badge variant={ingredient.stock > 20 ? 'outline' : 'destructive'}>{ingredient.stock} {unitLabels[ingredient.unit]}</Badge>
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell align-middle">{ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان</TableCell>
                                             <TableCell className="hidden md:table-cell align-middle">{new Date().toLocaleDateString('fa-IR')}</TableCell>

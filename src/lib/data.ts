@@ -13,13 +13,13 @@ export const products: Product[] = [
 ];
 
 export const ingredients: Ingredient[] = [
-  { id: 'ing-1', name: 'سینه مرغ', stock: 50, avgBuyPrice: 80000, imageId: 'chicken_breast' },
-  { id: 'ing-2', name: 'کاهو رومانو', stock: 20, avgBuyPrice: 20000, imageId: 'lettuce' },
-  { id: 'ing-3', name: 'کینوا', stock: 30, avgBuyPrice: 100000, imageId: 'quinoa' },
-  { id: 'ing-4', name: 'آووکادو', stock: 40, avgBuyPrice: 15000, imageId: 'avocado' },
-  { id: 'ing-5', name: 'گوجه فرنگی', stock: 60, avgBuyPrice: 30000, imageId: 'tomato' },
-  { id: 'ing-6', name: 'نان گندم کامل', stock: 25, avgBuyPrice: 40000, imageId: 'bread' },
-  { id: 'ing-7', name: 'تخم مرغ', stock: 100, avgBuyPrice: 2000, imageId: 'egg' },
+  { id: 'ing-1', name: 'سینه مرغ', stock: 50, avgBuyPrice: 80000, imageId: 'chicken_breast', unit: 'kg' },
+  { id: 'ing-2', name: 'کاهو رومانو', stock: 20, avgBuyPrice: 20000, imageId: 'lettuce', unit: 'count' },
+  { id: 'ing-3', name: 'کینوا', stock: 30, avgBuyPrice: 100000, imageId: 'quinoa', unit: 'kg' },
+  { id: 'ing-4', name: 'آووکادو', stock: 40, avgBuyPrice: 15000, imageId: 'avocado', unit: 'count' },
+  { id: 'ing-5', name: 'گوجه فرنگی', stock: 60, avgBuyPrice: 30000, imageId: 'tomato', unit: 'kg' },
+  { id: 'ing-6', name: 'نان گندم کامل', stock: 25, avgBuyPrice: 40000, imageId: 'bread', unit: 'count' },
+  { id: 'ing-7', name: 'تخم مرغ', stock: 100, avgBuyPrice: 2000, imageId: 'egg', unit: 'count' },
 ];
 
 export const foods: Food[] = [
@@ -28,7 +28,7 @@ export const foods: Food[] = [
     name: 'سالاد مرغ گریل شده',
     recipe: [
       { ingredientId: 'ing-1', quantity: 0.2 }, // 200g
-      { ingredientId: 'ing-2', quantity: 0.1 }, // 100g
+      { ingredientId: 'ing-2', quantity: 1 }, // 1 head
       { ingredientId: 'ing-5', quantity: 0.05 }, // 50g
     ],
     sellPrice: 125000,

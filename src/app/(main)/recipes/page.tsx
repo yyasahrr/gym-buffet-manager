@@ -2,7 +2,7 @@
 
 import { PlusCircle } from 'lucide-react';
 import Image from 'next/image';
-import { foods as initialFoods, ingredients as allInitialIngredients, Food, Ingredient, RecipeItem } from '@/lib/data';
+import { foods as initialFoods, ingredients as allInitialIngredients, Food, Ingredient, RecipeItem, unitLabels } from '@/lib/data';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
@@ -53,7 +53,16 @@ export default function RecipesPage() {
         setFoods(storedFoods ? JSON.parse(storedFoods) : initialFoods);
 
         const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
-        setAllIngredients(storedIngredients ? JSON.parse(storedIngredients) : allInitialIngredients);
+        const loadedIngredients = storedIngredients ? JSON.parse(storedIngredients) : allInitialIngredients;
+        setAllIngredients(loadedIngredients);
+        
+        // Initialize selectedIngredients state based on loaded ingredients
+        const initialSelected = loadedIngredients.reduce((acc, ing) => {
+            acc[ing.id] = { checked: false, quantity: '' };
+            return acc;
+        }, {} as Record<string, {checked: boolean, quantity: string}>);
+        setSelectedIngredients(initialSelected);
+
     }, []);
 
     const ingredientMap = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
@@ -62,6 +71,8 @@ export default function RecipesPage() {
         return recipe.reduce((total, item) => {
             const ingredient = ingredientMap.get(item.ingredientId);
             if (!ingredient) return total;
+            // This calculation might need refinement based on units (e.g., g vs kg)
+            // For now, assuming quantity is in the base unit of the ingredient
             return total + ingredient.avgBuyPrice * item.quantity;
         }, 0);
     };
@@ -103,7 +114,12 @@ export default function RecipesPage() {
         setIsDialogOpen(false);
         setNewRecipeName('');
         setNewRecipePrice('');
-        setSelectedIngredients({});
+        // Reset selected ingredients state
+        const resetSelected = allIngredients.reduce((acc, ing) => {
+            acc[ing.id] = { checked: false, quantity: '' };
+            return acc;
+        }, {} as Record<string, {checked: boolean, quantity: string}>);
+        setSelectedIngredients(resetSelected);
     };
 
     return (
@@ -145,24 +161,30 @@ export default function RecipesPage() {
                                                                 if (checked) {
                                                                     current[ing.id] = { checked: true, quantity: current[ing.id]?.quantity || ''};
                                                                 } else {
-                                                                    delete current[ing.id];
+                                                                    // Unchecking should ideally clear quantity or handle it as needed
+                                                                    current[ing.id] = { ...current[ing.id], checked: false };
                                                                 }
                                                                 setSelectedIngredients(current);
                                                             }}
                                                         />
                                                         <Label htmlFor={`ing-${ing.id}`}>{ing.name}</Label>
                                                     </div>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="مقدار"
-                                                        className="w-24 h-8"
-                                                        value={selectedIngredients[ing.id]?.quantity || ''}
-                                                        disabled={!selectedIngredients[ing.id]?.checked}
-                                                        onChange={(e) => setSelectedIngredients({
-                                                            ...selectedIngredients,
-                                                            [ing.id]: { ...selectedIngredients[ing.id], quantity: e.target.value }
-                                                        })}
-                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            type="number"
+                                                            placeholder="مقدار"
+                                                            className="w-24 h-8"
+                                                            value={selectedIngredients[ing.id]?.quantity || ''}
+                                                            disabled={!selectedIngredients[ing.id]?.checked}
+                                                            onChange={(e) => setSelectedIngredients({
+                                                                ...selectedIngredients,
+                                                                [ing.id]: { ...selectedIngredients[ing.id], quantity: e.target.value }
+                                                            })}
+                                                        />
+                                                        <span className="text-sm text-muted-foreground w-12 text-right">
+                                                            {unitLabels[ing.unit] || ing.unit}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -203,7 +225,7 @@ export default function RecipesPage() {
                             <ul className="list-disc list-inside text-sm text-muted-foreground my-2">
                                 {food.recipe.map(item => {
                                     const ingredient = ingredientMap.get(item.ingredientId);
-                                    return <li key={item.ingredientId}>{ingredient?.name} ({item.quantity})</li>
+                                    return <li key={item.ingredientId}>{ingredient?.name} ({item.quantity} {ingredient ? unitLabels[ingredient.unit] : ''})</li>
                                 })}
                             </ul>
                             <Separator className="my-4" />

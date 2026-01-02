@@ -7,12 +7,24 @@ export type Product = {
   imageId: string;
 };
 
+export type Unit = 'g' | 'kg' | 'ml' | 'l' | 'count';
+
+export const unitLabels: Record<Unit, string> = {
+    'g': 'گرم',
+    'kg': 'کیلوگرم',
+    'ml': 'میلی‌لیتر',
+    'l': 'لیتر',
+    'count': 'عدد'
+};
+
+
 export type Ingredient = {
   id: string;
   name: string;
   stock: number;
   avgBuyPrice: number;
   imageId: string;
+  unit: Unit;
 };
 
 export type RecipeItem = {
