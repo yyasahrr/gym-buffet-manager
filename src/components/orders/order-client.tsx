@@ -6,6 +6,7 @@ import { Plus, Minus, Trash2, ShoppingCart, Loader2, User } from 'lucide-react';
 import { products as initialProducts, foods as initialFoods, ingredients as initialIngredients, customers as initialCustomers, recentOrders as initialOrders } from '@/lib/data';
 import type { Order, OrderItem, Product, Food, Customer, Ingredient } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
+import { canFulfillOrderItem, fulfillOrder } from '@/lib/inventory';
 
 import {
   Card,
@@ -71,17 +72,34 @@ export default function OrderClient() {
   }, []);
 
   const ingredientMap = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
+  const productMap = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
 
   const selectedCustomer = useMemo(() => {
     return customers.find(c => c.id === selectedCustomerId);
   }, [selectedCustomerId, customers]);
 
   const addToCart = (item: Product | Food) => {
+    const currentInventory = {
+      products: products,
+      ingredients: allIngredients,
+    };
+    
+    const existingCartItem = cart.find(ci => ci.item.id === item.id);
+    const newQuantity = (existingCartItem?.quantity || 0) + 1;
+
+    if (!canFulfillOrderItem({item, quantity: 1}, currentInventory, cart)) {
+      toast({
+        variant: "destructive",
+        title: "موجودی ناکافی",
+        description: `موجودی برای "${item.name}" کافی نیست.`,
+      });
+      return;
+    }
+
     setCart((prevCart) => {
-      const existingItem = prevCart.find((cartItem) => cartItem.item.id === item.id);
-      if (existingItem) {
+      if (existingCartItem) {
         return prevCart.map((cartItem) =>
-          cartItem.item.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
+          cartItem.item.id === item.id ? { ...cartItem, quantity: newQuantity } : cartItem
         );
       }
       return [...prevCart, { item, quantity: 1 }];
@@ -89,6 +107,24 @@ export default function OrderClient() {
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
+    const itemInCart = cart.find(ci => ci.item.id === itemId)?.item;
+    if (!itemInCart) return;
+  
+    if (quantity > 0) {
+      const currentInventory = { products, ingredients: allIngredients };
+      // Check if increasing quantity is possible
+      if (quantity > (cart.find(ci => ci.item.id === itemId)?.quantity || 0)) {
+         if (!canFulfillOrderItem({item: itemInCart, quantity: 1}, currentInventory, cart)) {
+          toast({
+            variant: "destructive",
+            title: "موجودی ناکافی",
+            description: `موجودی برای افزودن یک عدد دیگر از "${itemInCart.name}" کافی نیست.`,
+          });
+          return;
+         }
+      }
+    }
+
     setCart((prevCart) => {
       if (quantity <= 0) {
         return prevCart.filter((item) => item.item.id !== itemId);
@@ -131,6 +167,26 @@ export default function OrderClient() {
     
     // Simulate API call
     setTimeout(() => {
+        const currentInventory = { products, ingredients: allIngredients };
+        const { updatedProducts, updatedIngredients, success } = fulfillOrder(cart, currentInventory);
+
+        if (!success) {
+            toast({
+                variant: "destructive",
+                title: "خطای داخلی",
+                description: "موجودی برای تکمیل سفارش کافی نیست. لطفاً سبد خرید را بازبینی کنید.",
+            });
+            setIsCheckingOut(false);
+            return;
+        }
+        
+        // Update inventory state and localStorage
+        setProducts(updatedProducts);
+        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updatedProducts));
+        setAllIngredients(updatedIngredients);
+        localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+        
+
         let updatedCustomers = [...customers];
         if (selectedCustomer && newBalance !== null) {
           updatedCustomers = customers.map(c => 
@@ -147,7 +203,7 @@ export default function OrderClient() {
             items: cart,
             total: cartTotal,
             createdAt: new Date().toISOString(),
-            status: selectedCustomer.name === 'مشتری حضوری' ? 'پرداخت شده' : 'در انتظار پرداخت',
+            status: selectedCustomer.name === 'مشتری حضوری' || newBalance === null ? 'پرداخت شده' : 'در انتظار پرداخت',
         }
 
         const updatedOrders = [...orders, newOrder];
@@ -170,15 +226,38 @@ export default function OrderClient() {
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {items.map((item) => {
         const image = imageMap.get(item.imageId);
+        const isFood = 'recipe' in item;
+        let stock: number | string;
+        if(isFood){
+          const ingredientStocks = item.recipe.map(recipeItem => {
+            const ingredient = ingredientMap.get(recipeItem.ingredientId);
+            if(!ingredient) return 0;
+            return Math.floor(ingredient.stock / recipeItem.quantity);
+          });
+          stock = Math.min(...ingredientStocks);
+        } else {
+          stock = (productMap.get(item.id) as Product)?.stock ?? 0;
+        }
+
+        const isAvailable = stock > 0;
+
         return (
           <Card
             key={item.id}
-            onClick={() => addToCart(item)}
-            className="cursor-pointer hover:shadow-lg hover:border-primary transition-all group overflow-hidden"
+            onClick={() => isAvailable && addToCart(item)}
+            className={cn(
+              "cursor-pointer hover:shadow-lg hover:border-primary transition-all group overflow-hidden",
+              !isAvailable && "opacity-50 cursor-not-allowed"
+            )}
           >
             <CardContent className="p-0">
                 <div className="aspect-square relative">
                     {image && <Image src={image.imageUrl} alt={item.name} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={image.imageHint}/>}
+                    {!isAvailable && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <p className="text-white font-bold text-lg">ناموجود</p>
+                      </div>
+                    )}
                 </div>
             </CardContent>
             <CardHeader className="p-3">
