@@ -18,23 +18,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { recentOrders as initialOrders, Order } from '@/lib/data';
+import { Order } from '@/lib/types';
 import { format } from 'date-fns-jalali';
-import { useEffect, useState, useMemo } from 'react';
-
-const ORDERS_STORAGE_KEY = 'gym-canteen-orders'; // Assuming orders might be saved somewhere
+import { useState, useMemo } from 'react';
+import { useAppData } from '@/lib/store';
 
 export default function ReportsPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { orders } = useAppData();
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    // For now, we use initial orders as there's no mechanism to add new ones.
-    // In a real app, this would fetch from localStorage or an API.
-    setOrders(initialOrders);
-  }, []);
-
   const filteredOrders = useMemo(() => {
+    if (!orders) return [];
     return orders.filter(order =>
       order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.items.some(i => i.item.name.toLowerCase().includes(searchQuery.toLowerCase()))

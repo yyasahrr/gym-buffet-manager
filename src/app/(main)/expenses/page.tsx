@@ -44,12 +44,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { type Expense, type Purchase } from '@/lib/types';
-import { expenses as initialExpenses, purchases as initialPurchases } from '@/lib/data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-
-const MANUAL_EXPENSES_STORAGE_KEY = 'gym-canteen-expenses';
-const PURCHASES_STORAGE_KEY = 'gym-canteen-purchases';
+import { useAppData, dataStore } from '@/lib/store';
 
 type CombinedExpense = {
     id: string;
@@ -60,8 +57,7 @@ type CombinedExpense = {
 }
 
 export default function ExpensesPage() {
-  const [manualExpenses, setManualExpenses] = useState<Expense[]>([]);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const { manualExpenses, purchases } = useAppData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({
     description: '',
@@ -69,14 +65,6 @@ export default function ExpensesPage() {
     date: new Date().toISOString().split('T')[0],
   });
   const { toast } = useToast();
-  
-  useEffect(() => {
-    const storedManualExpenses = localStorage.getItem(MANUAL_EXPENSES_STORAGE_KEY);
-    setManualExpenses(storedManualExpenses ? JSON.parse(storedManualExpenses) : initialExpenses);
-
-    const storedPurchases = localStorage.getItem(PURCHASES_STORAGE_KEY);
-    setPurchases(storedPurchases ? JSON.parse(storedPurchases) : initialPurchases);
-  }, []);
 
   const combinedExpenses = useMemo(() => {
     const allExpenses: CombinedExpense[] = [];
@@ -131,8 +119,7 @@ export default function ExpensesPage() {
     };
 
     const updatedExpenses = [...manualExpenses, expenseData];
-    setManualExpenses(updatedExpenses);
-    localStorage.setItem(MANUAL_EXPENSES_STORAGE_KEY, JSON.stringify(updatedExpenses));
+    dataStore.saveData({ manualExpenses: updatedExpenses });
 
     toast({
       title: 'موفقیت‌آمیز',

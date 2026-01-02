@@ -1,7 +1,6 @@
 'use client';
 
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, Archive, ArchiveRestore } from 'lucide-react';
-import { ingredients as initialIngredients, foods as initialFoods, purchases as initialPurchases } from '@/lib/data';
 import { type Ingredient, type Unit } from '@/lib/types';
 import { unitLabels } from '@/lib/types';
 import { Header } from '@/components/header';
@@ -51,10 +50,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
-const FOODS_STORAGE_KEY = 'gym-canteen-foods';
-const PURCHASES_STORAGE_KEY = 'gym-canteen-purchases';
+import { useAppData, dataStore } from '@/lib/store';
 
 type DialogState = {
     isOpen: boolean;
@@ -63,18 +59,8 @@ type DialogState = {
 }
 
 export default function IngredientsPage() {
-    const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-    const [allFoods, setAllFoods] = useState(() => {
-        if (typeof window === 'undefined') return initialFoods;
-        const stored = localStorage.getItem(FOODS_STORAGE_KEY);
-        return stored ? JSON.parse(stored) : initialFoods;
-    });
-    const [allPurchases, setAllPurchases] = useState(() => {
-        if (typeof window === 'undefined') return initialPurchases;
-        const stored = localStorage.getItem(PURCHASES_STORAGE_KEY);
-        return stored ? JSON.parse(stored) : initialPurchases;
-    });
-
+    const { ingredients, foods, purchases } = useAppData();
+    
     const [searchQuery, setSearchQuery] = useState('');
     const [dialogState, setDialogState] = useState<DialogState>({isOpen: false, mode: 'add', ingredient: null});
     const [formData, setFormData] = useState<{name: string; unit: Unit}>({ name: '', unit: 'g' });
@@ -86,13 +72,6 @@ export default function IngredientsPage() {
 
     useEffect(() => {
         setIsClient(true);
-        const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
-        if (storedIngredients) {
-            setIngredients(JSON.parse(storedIngredients));
-        } else {
-            setIngredients(initialIngredients);
-            localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(initialIngredients));
-        }
     }, []);
 
     const filteredIngredients = useMemo(() => {
@@ -132,15 +111,13 @@ export default function IngredientsPage() {
                 status: 'active',
             };
             const updatedIngredients = [...ingredients, newIngredientData];
-            setIngredients(updatedIngredients);
-            localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+            dataStore.saveData({ ingredients: updatedIngredients });
             toast({ title: "موفقیت‌آمیز", description: `ماده اولیه "${name}" با موفقیت اضافه شد.` });
         } else if (dialogState.mode === 'edit' && dialogState.ingredient) {
             const updatedIngredients = ingredients.map(ing => 
                 ing.id === dialogState.ingredient!.id ? { ...ing, name, unit } : ing
             );
-            setIngredients(updatedIngredients);
-            localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+            dataStore.saveData({ ingredients: updatedIngredients });
             toast({ title: "موفقیت‌آمیز", description: `ماده اولیه "${name}" با موفقیت ویرایش شد.` });
         }
 
@@ -151,8 +128,7 @@ export default function IngredientsPage() {
         const updatedIngredients = ingredients.map(ing => 
             ing.id === ingredientId ? { ...ing, status: 'archived' } : ing
         );
-        setIngredients(updatedIngredients);
-        localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+        dataStore.saveData({ ingredients: updatedIngredients });
         toast({
             title: "ماده اولیه بایگانی شد",
             description: "این ماده اولیه اکنون در لیست بایگانی قرار دارد.",
@@ -164,8 +140,7 @@ export default function IngredientsPage() {
         const updatedIngredients = ingredients.map(ing => 
             ing.id === ingredientId ? { ...ing, status: 'active' } : ing
         );
-        setIngredients(updatedIngredients);
-        localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+        dataStore.saveData({ ingredients: updatedIngredients });
         toast({
             title: "ماده اولیه بازگردانی شد",
             description: "این ماده اولیه اکنون در لیست فعال قرار دارد.",
@@ -177,8 +152,8 @@ export default function IngredientsPage() {
         const ingredient = ingredients.find(ing => ing.id === ingredientId);
         if (!ingredient) return;
 
-        const isUsedInRecipe = allFoods.some(food => food.recipe.some(item => item.ingredientId === ingredientId));
-        const hasPurchaseHistory = allPurchases.some(purchase => purchase.ingredientId === ingredientId);
+        const isUsedInRecipe = foods.some(food => food.recipe.some(item => item.ingredientId === ingredientId));
+        const hasPurchaseHistory = purchases.some(purchase => purchase.items.some(item => item.itemId === `ingredient-${ingredientId}`));
 
         if (ingredient.stock > 0 || isUsedInRecipe || hasPurchaseHistory) {
              toast({
@@ -188,8 +163,7 @@ export default function IngredientsPage() {
             });
         } else {
             const updatedIngredients = ingredients.filter(ing => ing.id !== ingredientId);
-            setIngredients(updatedIngredients);
-            localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+            dataStore.saveData({ ingredients: updatedIngredients });
             toast({
                 title: "ماده اولیه حذف شد",
                 description: `"${ingredient.name}" برای همیشه حذف شد.`,

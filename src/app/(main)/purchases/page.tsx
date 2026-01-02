@@ -15,19 +15,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { type Ingredient, type Product, type Purchase, type PurchaseItem, unitLabels } from '@/lib/types';
-import { ingredients as initialIngredients, products as initialProducts, purchases as initialPurchases } from '@/lib/data';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-
-const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
-const PRODUCTS_STORAGE_KEY = 'gym-canteen-products';
-const PURCHASES_STORAGE_KEY = 'gym-canteen-purchases';
+import { useAppData, dataStore } from '@/lib/store';
 
 export default function PurchasesPage() {
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const { ingredients, products, purchases } = useAppData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString());
@@ -36,17 +30,6 @@ export default function PurchasesPage() {
   const [purchaseItems, setPurchaseItems] = useState<Partial<PurchaseItem>[]>([{}]);
 
   const { toast } = useToast();
-
-  useEffect(() => {
-    const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
-    setIngredients(storedIngredients ? JSON.parse(storedIngredients) : initialIngredients);
-
-    const storedProducts = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    setProducts(storedProducts ? JSON.parse(storedProducts) : initialProducts);
-    
-    const storedPurchases = localStorage.getItem(PURCHASES_STORAGE_KEY);
-    setPurchases(storedPurchases ? JSON.parse(storedPurchases) : initialPurchases);
-  }, []);
 
   const activeIngredients = useMemo(() => ingredients.filter(i => i.status === 'active'), [ingredients]);
   const activeProducts = useMemo(() => products.filter(p => p.status === 'active'), [products]);
@@ -115,8 +98,8 @@ export default function PurchasesPage() {
     const totalBaseCost = validItems.reduce((sum, item) => sum + item.lineTotalCost, 0);
 
     // --- Logic ---
-    const ingredientsToUpdate = new Map<string, Ingredient>();
-    const productsToUpdate = new Map<string, Product>();
+    let tempIngredients = ingredients.map(i => ({...i}));
+    let tempProducts = products.map(p => ({...p}));
 
     for (const item of validItems) {
       const itemBaseCost = item.lineTotalCost;
@@ -124,7 +107,7 @@ export default function PurchasesPage() {
       const finalUnitCost = (itemBaseCost + transportShare) / item.quantity;
       
       if (item.type === 'ingredient') {
-        const originalIngredient = ingredients.find(i => i.id === item.itemId.split('-')[1]);
+        const originalIngredient = tempIngredients.find(i => i.id === item.itemId.split('-')[1]);
         if (originalIngredient) {
           const oldStock = originalIngredient.stock;
           const oldAvg = originalIngredient.avgBuyPrice;
@@ -134,15 +117,11 @@ export default function PurchasesPage() {
             ? ((oldStock * oldAvg) + (newQty * finalUnitCost)) / (oldStock + newQty)
             : finalUnitCost;
           
-          const updatedIngredient = {
-            ...originalIngredient,
-            stock: oldStock + newQty,
-            avgBuyPrice: newAvgPrice
-          };
-          ingredientsToUpdate.set(originalIngredient.id, updatedIngredient);
+          originalIngredient.stock = oldStock + newQty;
+          originalIngredient.avgBuyPrice = newAvgPrice;
         }
       } else { // Product
-        const originalProduct = products.find(p => p.id === item.itemId.split('-')[1]);
+        const originalProduct = tempProducts.find(p => p.id === item.itemId.split('-')[1]);
         if (originalProduct) {
            const oldStock = originalProduct.stock;
            const oldAvg = originalProduct.avgBuyPrice;
@@ -152,25 +131,13 @@ export default function PurchasesPage() {
              ? ((oldStock * oldAvg) + (newQty * finalUnitCost)) / (oldStock + newQty)
              : finalUnitCost;
 
-           const updatedProduct = {
-             ...originalProduct,
-             stock: oldStock + newQty,
-             avgBuyPrice: newAvgPrice
-           };
-           productsToUpdate.set(originalProduct.id, updatedProduct);
+           originalProduct.stock = oldStock + newQty;
+           originalProduct.avgBuyPrice = newAvgPrice;
         }
       }
     }
     
     // --- State Update ---
-    const finalIngredients = ingredients.map(i => ingredientsToUpdate.get(i.id) || i);
-    const finalProducts = products.map(p => productsToUpdate.get(p.id) || p);
-    
-    setIngredients(finalIngredients);
-    localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(finalIngredients));
-    setProducts(finalProducts);
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(finalProducts));
-
     const newPurchase: Purchase = {
       id: `pur-${Date.now()}`,
       date: purchaseDate,
@@ -180,8 +147,11 @@ export default function PurchasesPage() {
     };
     
     const updatedPurchases = [...purchases, newPurchase];
-    setPurchases(updatedPurchases);
-    localStorage.setItem(PURCHASES_STORAGE_KEY, JSON.stringify(updatedPurchases));
+    dataStore.saveData({ 
+        ingredients: tempIngredients, 
+        products: tempProducts, 
+        purchases: updatedPurchases 
+    });
 
     toast({ title: 'موفقیت‌آمیز', description: 'خرید جدید با موفقیت ثبت و موجودی انبار به روز شد.' });
 
@@ -322,8 +292,6 @@ export default function PurchasesPage() {
                          // Backward compatibility for old data structure
                         if (item.lineTotalCost) {
                             return sum + item.lineTotalCost;
-                        } else if (item.unitPrice && item.quantity) {
-                            return sum + (item.unitPrice * item.quantity);
                         }
                         return sum;
                     }, 0) + (pur.transportCost || 0);

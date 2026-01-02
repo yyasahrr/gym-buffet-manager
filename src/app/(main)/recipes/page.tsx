@@ -2,7 +2,7 @@
 
 import { PlusCircle, Trash2, MoreHorizontal, Pencil, Archive, ArchiveRestore, Upload, XCircle } from 'lucide-react';
 import Image from 'next/image';
-import { foods as initialFoods, ingredients as allInitialIngredients, Food, Ingredient, RecipeItem, Order } from '@/lib/data';
+import { Food, Ingredient, RecipeItem, Order } from '@/lib/types';
 import { unitLabels } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Header } from '@/components/header';
@@ -41,17 +41,14 @@ import {
   } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { resizeImage } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { useAppData, dataStore } from '@/lib/store';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
-const FOODS_STORAGE_KEY = 'gym-canteen-foods';
-const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
-const ORDERS_STORAGE_KEY = 'gym-canteen-orders';
 
 
 type DialogState = {
@@ -69,9 +66,7 @@ const initialFormState = {
 
 
 export default function RecipesPage() {
-    const [foods, setFoods] = useState<Food[]>([]);
-    const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
-    const [allOrders, setAllOrders] = useState<Order[]>([]);
+    const { foods, ingredients, orders } = useAppData();
     const [searchQuery, setSearchQuery] = useState('');
     const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, mode: 'add', food: null });
     const { toast } = useToast();
@@ -80,20 +75,9 @@ export default function RecipesPage() {
     const [activeTab, setActiveTab] = useState('active');
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        const storedFoods = localStorage.getItem(FOODS_STORAGE_KEY);
-        setFoods(storedFoods ? JSON.parse(storedFoods) : initialFoods);
-
-        const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
-        setAllIngredients(storedIngredients ? JSON.parse(storedIngredients) : allInitialIngredients);
-
-        const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
-        setAllOrders(storedOrders ? JSON.parse(storedOrders) : []);
-    }, []);
     
-    const activeIngredients = useMemo(() => allIngredients.filter(i => i.status === 'active'), [allIngredients]);
-    const ingredientMap = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
+    const activeIngredients = useMemo(() => ingredients.filter(i => i.status === 'active'), [ingredients]);
+    const ingredientMap = useMemo(() => new Map(ingredients.map(i => [i.id, i])), [ingredients]);
 
     const calculateCost = (recipe: Partial<RecipeItem>[]) => {
         return recipe.reduce((total, item) => {
@@ -182,8 +166,7 @@ export default function RecipesPage() {
                 status: 'active',
             };
             const updatedFoods = [...foods, newFood];
-            setFoods(updatedFoods);
-            localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(updatedFoods));
+            dataStore.saveData({ foods: updatedFoods });
             toast({ title: "موفقیت‌آمیز", description: `دستور پخت "${name}" با موفقیت اضافه شد.` });
         } else if (dialogState.mode === 'edit' && dialogState.food) {
             const updatedFoods = foods.map(f => f.id === dialogState.food!.id ? {
@@ -193,8 +176,7 @@ export default function RecipesPage() {
                 recipe: finalRecipeItems,
                 imageDataUrl: formData.imageDataUrl,
             } : f);
-             setFoods(updatedFoods);
-             localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(updatedFoods));
+             dataStore.saveData({ foods: updatedFoods });
              toast({ title: "موفقیت‌آمیز", description: `دستور پخت "${name}" با موفقیت ویرایش شد.` });
         }
 
@@ -203,22 +185,20 @@ export default function RecipesPage() {
 
     const handleArchive = (foodId: string) => {
         const updatedFoods = foods.map(f => f.id === foodId ? { ...f, status: 'archived' } : f);
-        setFoods(updatedFoods);
-        localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(updatedFoods));
+        dataStore.saveData({ foods: updatedFoods });
         toast({ title: "دستور پخت بایگانی شد" });
         setOpenMenuId(null);
     };
 
     const handleRestore = (foodId: string) => {
         const updatedFoods = foods.map(f => f.id === foodId ? { ...f, status: 'active' } : f);
-        setFoods(updatedFoods);
-        localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(updatedFoods));
+        dataStore.saveData({ foods: updatedFoods });
         toast({ title: "دستور پخت بازیابی شد" });
         setOpenMenuId(null);
     };
 
     const handleDelete = (foodId: string) => {
-        const hasOrderHistory = allOrders.some(order => order.items.some(item => item.item.id === foodId));
+        const hasOrderHistory = orders.some(order => order.items.some(item => item.item.id === foodId));
 
         if (hasOrderHistory) {
             toast({
@@ -228,8 +208,7 @@ export default function RecipesPage() {
             });
         } else {
             const updatedFoods = foods.filter(f => f.id !== foodId);
-            setFoods(updatedFoods);
-            localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(updatedFoods));
+            dataStore.saveData({ foods: updatedFoods });
             toast({ title: "دستور پخت برای همیشه حذف شد" });
         }
         setOpenMenuId(null);

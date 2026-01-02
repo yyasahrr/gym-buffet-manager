@@ -13,45 +13,30 @@ import { Header } from '@/components/header';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { OverviewChart } from '@/components/dashboard/overview-chart';
 import { RecentSales } from '@/components/dashboard/recent-sales';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { Order, Product, Ingredient } from '@/lib/types';
 import { BestSellers } from '@/components/dashboard/best-sellers';
-
-const ORDERS_STORAGE_KEY = 'gym-canteen-orders';
-const PRODUCTS_STORAGE_KEY = 'gym-canteen-products';
-const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
+import { useAppData } from '@/lib/store';
 
 
 export default function DashboardPage() {
-    const [totalRevenue, setTotalRevenue] = useState(0);
-    const [inventoryValue, setInventoryValue] = useState(0);
-    const [totalSales, setTotalSales] = useState(0);
+    const { orders, products, ingredients } = useAppData();
+    
+    const totalRevenue = useMemo(() => {
+        return orders.reduce((sum, order) => sum + order.total, 0);
+    }, [orders]);
+    
+    const totalSales = useMemo(() => {
+        return orders.length;
+    }, [orders]);
 
-    useEffect(() => {
-        const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
-        if (storedOrders) {
-            const orders: Order[] = JSON.parse(storedOrders);
-            const revenue = orders.reduce((sum, order) => sum + order.total, 0);
-            setTotalRevenue(revenue);
-            setTotalSales(orders.length);
-        }
-
-        const storedProducts = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+    const inventoryValue = useMemo(() => {
         let currentInventoryValue = 0;
-        if(storedProducts) {
-            const products: Product[] = JSON.parse(storedProducts);
-            currentInventoryValue += products.reduce((sum, product) => sum + (product.stock * product.avgBuyPrice), 0);
-        }
-        
-        const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
-        if(storedIngredients) {
-            const ingredients: Ingredient[] = JSON.parse(storedIngredients);
-            currentInventoryValue += ingredients.reduce((sum, ingredient) => sum + (ingredient.stock * ingredient.avgBuyPrice), 0);
-        }
-
-        setInventoryValue(currentInventoryValue);
-
-    }, []);
+        currentInventoryValue += products.reduce((sum, product) => sum + (product.stock * product.avgBuyPrice), 0);
+        currentInventoryValue += ingredients.reduce((sum, ingredient) => sum + (ingredient.stock * ingredient.avgBuyPrice), 0);
+        return currentInventoryValue;
+    }, [products, ingredients]);
+    
 
   return (
     <div className="flex flex-col h-full">

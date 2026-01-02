@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { PlusCircle, Wallet } from 'lucide-react';
-import { customers as initialCustomers, Customer } from '@/lib/data';
+import { Customer } from '@/lib/types';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -36,11 +36,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useAppData, dataStore } from '@/lib/store';
 
-const CUSTOMERS_STORAGE_KEY = 'gym-canteen-customers';
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const { customers } = useAppData();
   const [searchQuery, setSearchQuery] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -50,16 +50,6 @@ export default function CustomersPage() {
   const [chargeAmount, setChargeAmount] = useState('');
   
   const { toast } = useToast();
-
-  useEffect(() => {
-    const storedCustomers = localStorage.getItem(CUSTOMERS_STORAGE_KEY);
-    if (storedCustomers) {
-      setCustomers(JSON.parse(storedCustomers));
-    } else {
-      setCustomers(initialCustomers);
-      localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(initialCustomers));
-    }
-  }, []);
   
   const filteredCustomers = useMemo(() => {
     return customers.filter(customer =>
@@ -84,8 +74,7 @@ export default function CustomersPage() {
     };
 
     const updatedCustomers = [...customers, newCustomer];
-    setCustomers(updatedCustomers);
-    localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(updatedCustomers));
+    dataStore.saveData({ customers: updatedCustomers });
     
     toast({
       title: "موفقیت‌آمیز",
@@ -119,8 +108,7 @@ export default function CustomersPage() {
         : c
     );
     
-    setCustomers(updatedCustomers);
-    localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(updatedCustomers));
+    dataStore.saveData({ customers: updatedCustomers });
     
     toast({
       title: "موفقیت‌آمیز",

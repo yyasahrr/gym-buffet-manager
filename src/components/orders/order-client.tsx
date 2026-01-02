@@ -3,10 +3,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Plus, Minus, Trash2, ShoppingCart, Loader2, User } from 'lucide-react';
-import { products as initialProducts, foods as initialFoods, ingredients as initialIngredients, customers as initialCustomers, recentOrders as initialOrders } from '@/lib/data';
 import type { Order, OrderItem, Product, Food, Customer, Ingredient } from '@/lib/types';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { canFulfillOrderItem, fulfillOrder } from '@/lib/inventory';
+import { useAppData, dataStore } from '@/lib/store';
 
 import {
   Card,
@@ -25,19 +25,10 @@ import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
-const CUSTOMERS_STORAGE_KEY = 'gym-canteen-customers';
-const PRODUCTS_STORAGE_KEY = 'gym-canteen-products';
-const FOODS_STORAGE_KEY = 'gym-canteen-foods';
-const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
-const ORDERS_STORAGE_KEY = 'gym-canteen-orders';
 
 export default function OrderClient() {
+  const { customers, products, foods, ingredients, orders } = useAppData();
   const [cart, setCart] = useState<OrderItem[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [foods, setFoods] = useState<Food[]>([]);
-  const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
   
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -45,34 +36,17 @@ export default function OrderClient() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const storedCustomers = localStorage.getItem(CUSTOMERS_STORAGE_KEY);
-    const loadedCustomers = storedCustomers ? JSON.parse(storedCustomers) : initialCustomers;
-    setCustomers(loadedCustomers);
-
-    const defaultCustomer = loadedCustomers.find((c: Customer) => c.name === 'مشتری حضوری');
-    if (defaultCustomer) {
-      setSelectedCustomerId(defaultCustomer.id);
-    } else if (loadedCustomers.length > 0) {
-      setSelectedCustomerId(loadedCustomers[0].id);
+    if (customers.length > 0 && !selectedCustomerId) {
+        const defaultCustomer = customers.find((c: Customer) => c.name === 'مشتری حضوری');
+        if (defaultCustomer) {
+        setSelectedCustomerId(defaultCustomer.id);
+        } else {
+        setSelectedCustomerId(customers[0].id);
+        }
     }
-    
-    const storedProducts = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    setProducts(storedProducts ? JSON.parse(storedProducts) : initialProducts);
-    
-    const storedFoods = localStorage.getItem(FOODS_STORAGE_KEY);
-    setFoods(storedFoods ? JSON.parse(storedFoods) : initialFoods);
+  }, [customers, selectedCustomerId]);
 
-    const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
-    setAllIngredients(storedIngredients ? JSON.parse(storedIngredients) : initialIngredients);
-    
-    const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
-    setOrders(storedOrders ? JSON.parse(storedOrders) : initialOrders);
-
-
-  }, []);
-
-  const ingredientMap = useMemo(() => new Map(allIngredients.map(i => [i.id, i])), [allIngredients]);
-  const productMap = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
+  const ingredientMap = useMemo(() => new Map(ingredients.map(i => [i.id, i])), [ingredients]);
 
   const selectedCustomer = useMemo(() => {
     return customers.find(c => c.id === selectedCustomerId);
@@ -81,10 +55,9 @@ export default function OrderClient() {
   const addToCart = (item: Product | Food) => {
     const currentInventory = {
       products: products,
-      ingredients: allIngredients,
+      ingredients: ingredients,
     };
     
-    // We check if we can fulfill one more of this item, considering what's already in the cart.
     if (!canFulfillOrderItem({item, quantity: 1}, currentInventory, cart)) {
       toast({
         variant: "destructive",
@@ -116,9 +89,8 @@ export default function OrderClient() {
       return;
     }
     
-    // Only check stock if we are increasing the quantity
     if (newQuantity > currentQuantityInCart) {
-      const currentInventory = { products, ingredients: allIngredients };
+      const currentInventory = { products, ingredients: ingredients };
       const tempCart = cart.map(ci => ci.item.id === itemId ? {...ci, quantity: newQuantity -1 } : ci);
       
       if (!canFulfillOrderItem({item: itemInCart, quantity: 1}, currentInventory, tempCart)) {
@@ -173,9 +145,8 @@ export default function OrderClient() {
 
     setIsCheckingOut(true);
     
-    // Simulate API call
     setTimeout(() => {
-        const currentInventory = { products, ingredients: allIngredients };
+        const currentInventory = { products, ingredients };
         const { updatedProducts, updatedIngredients, success } = fulfillOrder(cart, currentInventory);
 
         if (!success) {
@@ -188,20 +159,11 @@ export default function OrderClient() {
             return;
         }
         
-        // Update inventory state and localStorage
-        setProducts(updatedProducts);
-        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updatedProducts));
-        setAllIngredients(updatedIngredients);
-        localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
-        
-
-        let updatedCustomers = [...customers];
+        let finalCustomers = [...customers];
         if (selectedCustomer && newBalance !== null) {
-          updatedCustomers = customers.map(c => 
+          finalCustomers = customers.map(c => 
             c.id === selectedCustomer.id ? {...c, balance: newBalance} : c
           );
-          setCustomers(updatedCustomers);
-          localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(updatedCustomers));
         }
 
         const newOrder: Order = {
@@ -215,8 +177,13 @@ export default function OrderClient() {
         }
 
         const updatedOrders = [...orders, newOrder];
-        setOrders(updatedOrders);
-        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
+        
+        dataStore.saveData({
+          products: updatedProducts,
+          ingredients: updatedIngredients,
+          customers: finalCustomers,
+          orders: updatedOrders,
+        });
     
         toast({
           title: "سفارش ثبت شد!",
@@ -234,9 +201,8 @@ export default function OrderClient() {
   const filteredProducts = useMemo(() => activeProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())), [activeProducts, searchQuery]);
 
   const ItemGrid = ({ items }: { items: (Product | Food)[] }) => {
-    // We create a temporary inventory map for quick lookups inside this render function.
     const tempProductMap = new Map(products.map(p => [p.id, p]));
-    const tempIngredientMap = new Map(allIngredients.map(i => [i.id, i]));
+    const tempIngredientMap = new Map(ingredients.map(i => [i.id, i]));
     
     return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -246,10 +212,9 @@ export default function OrderClient() {
         let stock: number | string;
         
         if (isFood) {
-          // Calculate how many times we can make this food item.
           const recipe = item.recipe;
           if (recipe.length === 0) {
-            stock = Infinity; // Assumes it can always be made if no ingredients.
+            stock = Infinity;
           } else {
             const possibleCounts = recipe.map(recipeItem => {
               const ingredient = tempIngredientMap.get(recipeItem.ingredientId);
@@ -259,7 +224,6 @@ export default function OrderClient() {
             stock = Math.min(...possibleCounts);
           }
         } else {
-          // It's a product, just get its stock.
           stock = tempProductMap.get(item.id)?.stock ?? 0;
         }
 
@@ -276,7 +240,7 @@ export default function OrderClient() {
           >
             <CardContent className="p-0">
                 <div className="aspect-square relative">
-                    {image && <Image src={image.imageUrl} alt={item.name} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={image.imageHint}/>}
+                    {image && <Image src={item.imageDataUrl || image.imageUrl} alt={item.name} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={image.imageHint}/>}
                     {!isAvailable && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <p className="text-white font-bold text-lg">ناموجود</p>

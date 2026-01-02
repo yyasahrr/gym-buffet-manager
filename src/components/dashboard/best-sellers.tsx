@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { Order, OrderItem, Product, Food } from '@/lib/types';
 import {
   Table,
@@ -17,8 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-
-const ORDERS_STORAGE_KEY = 'gym-canteen-orders';
+import { useAppData } from '@/lib/store';
 
 type SalesCount = {
   id: string;
@@ -27,36 +26,32 @@ type SalesCount = {
 };
 
 export function BestSellers() {
-  const [bestSellers, setBestSellers] = useState<SalesCount[]>([]);
+  const { orders } = useAppData();
 
-  useEffect(() => {
-    const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
-    if (storedOrders) {
-      const orders: Order[] = JSON.parse(storedOrders);
-      const salesCount: { [key: string]: SalesCount } = {};
+  const bestSellers = useMemo(() => {
+    if (!orders) return [];
 
-      orders.forEach(order => {
-        order.items.forEach(orderItem => {
-          const { item, quantity } = orderItem;
-          if (salesCount[item.id]) {
-            salesCount[item.id].count += quantity;
-          } else {
-            salesCount[item.id] = {
-              id: item.id,
-              name: item.name,
-              count: quantity,
-            };
-          }
-        });
+    const salesCount: { [key: string]: SalesCount } = {};
+
+    orders.forEach(order => {
+      order.items.forEach(orderItem => {
+        const { item, quantity } = orderItem;
+        if (salesCount[item.id]) {
+          salesCount[item.id].count += quantity;
+        } else {
+          salesCount[item.id] = {
+            id: item.id,
+            name: item.name,
+            count: quantity,
+          };
+        }
       });
+    });
 
-      const sortedSellers = Object.values(salesCount)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5); // Top 5
-      
-      setBestSellers(sortedSellers);
-    }
-  }, []);
+    return Object.values(salesCount)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5); // Top 5
+  }, [orders]);
 
   if (bestSellers.length === 0) {
     return (

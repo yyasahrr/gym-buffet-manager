@@ -87,3 +87,15 @@ export type Purchase = {
     transportCost: number;
     note: string;
 };
+
+
+// Represents the entire state of the application
+export type AppData = {
+  products: Product[];
+  ingredients: Ingredient[];
+  foods: Food[];
+  customers: Customer[];
+  orders: Order[];
+  purchases: Purchase[];
+  manualExpenses: Expense[];
+};

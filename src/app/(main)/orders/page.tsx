@@ -4,12 +4,12 @@ import OrderClient from '@/components/orders/order-client';
 
 export default function OrdersPage() {
   return (
-    <>
+    <div className="flex flex-col h-full">
       <Header breadcrumbs={[]} activeBreadcrumb="سفارشات" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="ایجاد سفارش" />
         <OrderClient />
       </main>
-    </>
+    </div>
   );
 }

@@ -1,67 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-import { Order } from '@/lib/types';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { format } from 'date-fns-jalali';
-
-const ORDERS_STORAGE_KEY = 'gym-canteen-orders';
-
-const getMonthName = (month: number) => {
-  const monthNames = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
-  return monthNames[month];
-}
+import { useAppData } from '@/lib/store';
 
 export function OverviewChart() {
-  const [data, setData] = useState<{name: string; total: number}[]>([]);
+  const { orders } = useAppData();
 
-  useEffect(() => {
-    const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
-    if (storedOrders) {
-      const orders: Order[] = JSON.parse(storedOrders);
+  const data = useMemo(() => {
+    const monthlySales: { [key: string]: number } = {};
+    const allMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
       
-      const monthlySales: { [key: string]: number } = {};
-
-      orders.forEach(order => {
-        const date = new Date(order.createdAt);
-        // Using format to get Persian month name correctly. The 'M' gives month number 1-12.
-        const monthName = format(date, 'MMMM');
-        
-        if (monthlySales[monthName]) {
-          monthlySales[monthName] += order.total;
-        } else {
-          monthlySales[monthName] = order.total;
-        }
-      });
-
-      // Ensure all 12 months are present
-      const allMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
-      const chartData = allMonths.map(monthName => ({
-        name: monthName,
-        total: monthlySales[monthName] || 0,
-      }));
-
-      setData(chartData);
-
-    } else {
-        // Create dummy data if no orders exist
-        const allMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
-        const chartData = allMonths.map(monthName => ({
-            name: monthName,
-            total: 0,
-        }));
-        setData(chartData);
+    if (orders) {
+        orders.forEach(order => {
+            const date = new Date(order.createdAt);
+            const monthName = format(date, 'MMMM');
+            
+            if (monthlySales[monthName]) {
+            monthlySales[monthName] += order.total;
+            } else {
+            monthlySales[monthName] = order.total;
+            }
+        });
     }
-  }, []);
 
-  if (data.length === 0) {
+    return allMonths.map(monthName => ({
+      name: monthName,
+      total: monthlySales[monthName] || 0,
+    }));
+
+  }, [orders]);
+
+
+  if (data.every(d => d.total === 0)) {
     return (
         <div className="flex items-center justify-center h-[350px]">
             <p className="text-muted-foreground">داده‌ای برای نمایش وجود ندارد.</p>

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { PlusCircle, MoreHorizontal, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { products as initialProducts, Product } from '@/lib/data';
+import { Product, Order } from '@/lib/types';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -50,15 +50,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAppData, dataStore } from '@/lib/store';
 
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
-const PRODUCTS_STORAGE_KEY = 'gym-canteen-products';
-const ORDERS_STORAGE_KEY = 'gym-canteen-orders'; // Needed to check usage history
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [allOrders, setAllOrders] = useState([]);
+  const { products, orders } = useAppData();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
@@ -69,20 +67,6 @@ export default function ProductsPage() {
   const { toast } = useToast();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('active');
-
-  useEffect(() => {
-    const storedProducts = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    if (storedProducts) {
-      setProducts(JSON.parse(storedProducts));
-    } else {
-      setProducts(initialProducts);
-      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(initialProducts));
-    }
-    const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
-    if(storedOrders) {
-        setAllOrders(JSON.parse(storedOrders));
-    }
-  }, []);
 
   const filteredProducts = useMemo(() => {
     return products.filter(product =>
@@ -113,8 +97,7 @@ export default function ProductsPage() {
     };
 
     const updatedProducts = [...products, newProductData];
-    setProducts(updatedProducts);
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updatedProducts));
+    dataStore.saveData({ products: updatedProducts });
     
     toast({
       title: "موفقیت‌آمیز",
@@ -127,16 +110,14 @@ export default function ProductsPage() {
   
   const handleArchiveProduct = (productId: string) => {
     const updatedProducts = products.map(p => p.id === productId ? { ...p, status: 'archived' } : p);
-    setProducts(updatedProducts);
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updatedProducts));
+    dataStore.saveData({ products: updatedProducts });
     toast({ title: "محصول بایگانی شد" });
     setOpenMenuId(null);
   };
   
   const handleRestoreProduct = (productId: string) => {
     const updatedProducts = products.map(p => p.id === productId ? { ...p, status: 'active' } : p);
-    setProducts(updatedProducts);
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updatedProducts));
+    dataStore.saveData({ products: updatedProducts });
     toast({ title: "محصول بازیابی شد" });
     setOpenMenuId(null);
   };
@@ -145,7 +126,7 @@ export default function ProductsPage() {
     const product = products.find(p => p.id === productId);
     if(!product) return;
 
-    const hasUsageHistory = allOrders.some((order: any) => order.items.some((item: any) => item.item.id === productId));
+    const hasUsageHistory = orders.some((order: any) => order.items.some((item: any) => item.item.id === productId));
 
     if(product.stock > 0 || hasUsageHistory) {
       toast({
@@ -155,8 +136,7 @@ export default function ProductsPage() {
       });
     } else {
       const updatedProducts = products.filter(p => p.id !== productId);
-      setProducts(updatedProducts);
-      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updatedProducts));
+      dataStore.saveData({ products: updatedProducts });
       toast({ title: "محصول برای همیشه حذف شد"});
     }
     setOpenMenuId(null);
