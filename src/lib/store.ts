@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppData } from './types';
+import type { AppData, Product, Ingredient, Food, Customer, CustomerTransaction, Order, Purchase, Expense } from './types';
 import { 
     products as initialProducts, 
     ingredients as initialIngredients, 
@@ -26,6 +26,70 @@ const INITIAL_DATA: AppData = {
   manualExpenses: initialExpenses,
 };
 
+// --- Data Normalization ---
+// This function ensures that data loaded from localStorage is valid and complete.
+function normalizeData(data: any): AppData {
+    const normalized: AppData = { ...INITIAL_DATA };
+
+    if (!data || typeof data !== 'object') {
+        return normalized;
+    }
+    
+    normalized.products = (data.products || []).map((p: Partial<Product>): Product => ({
+        id: p.id || `prod-${Date.now()}`,
+        name: p.name || 'محصول بی نام',
+        stock: p.stock || 0,
+        avgBuyPrice: p.avgBuyPrice || 0,
+        sellPrice: p.sellPrice || 0,
+        imageId: p.imageId || 'water_bottle',
+        status: p.status || 'active',
+    })).filter((p: Product | null) => p);
+
+    normalized.ingredients = (data.ingredients || []).map((i: Partial<Ingredient>): Ingredient => ({
+        id: i.id || `ing-${Date.now()}`,
+        name: i.name || 'ماده اولیه بی نام',
+        stock: i.stock || 0,
+        avgBuyPrice: i.avgBuyPrice || 0,
+        unit: i.unit || 'g',
+        status: i.status || 'active',
+    })).filter((i: Ingredient | null) => i);
+    
+    normalized.foods = (data.foods || []).map((f: Partial<Food>): Food => ({
+        id: f.id || `food-${Date.now()}`,
+        name: f.name || 'غذای بی نام',
+        recipe: f.recipe || [],
+        sellPrice: f.sellPrice || 0,
+        imageId: f.imageId || 'avocado_toast',
+        imageDataUrl: f.imageDataUrl || null,
+        status: f.status || 'active',
+    })).filter((f: Food | null) => f);
+
+    normalized.customers = (data.customers || []).map((c: Partial<Customer>): Customer => ({
+        id: c.id || `cust-${Date.now()}`,
+        name: c.name || 'مشتری بی نام',
+        status: c.status || 'active',
+    })).filter((c: Customer | null) => c);
+
+    normalized.customerTransactions = (data.customerTransactions || []).filter((ct: CustomerTransaction | null) => ct);
+    normalized.orders = (data.orders || []).filter((o: Order | null) => o);
+    
+    normalized.purchases = (data.purchases || []).map((p: Partial<Purchase>): Purchase => ({
+        id: p.id || `pur-${Date.now()}`,
+        date: p.date || new Date().toISOString(),
+        items: p.items || [],
+        transportCost: p.transportCost || 0,
+        note: p.note || '',
+        status: p.status || 'active',
+    })).filter((p: Purchase | null) => p);
+
+    normalized.manualExpenses = (data.manualExpenses || []).filter((e: Expense | null) => e);
+
+    return normalized;
+}
+
+
+// --- Core Store Logic ---
+
 let appData: AppData = { ...INITIAL_DATA };
 let listeners: (() => void)[] = [];
 
@@ -40,35 +104,17 @@ function loadData(): AppData {
 
     if (storedVersion !== STORE_VERSION || !rawData) {
       console.log(`Store version mismatch or no data. Initializing store. Old: ${storedVersion}, New: ${STORE_VERSION}`);
-      
+      const normalizedInitialData = normalizeData(INITIAL_DATA);
       localStorage.setItem(VERSION_KEY, STORE_VERSION);
-      localStorage.setItem(DATA_KEY, JSON.stringify(INITIAL_DATA));
+      localStorage.setItem(DATA_KEY, JSON.stringify(normalizedInitialData));
       
-      return { ...INITIAL_DATA };
+      return normalizedInitialData;
     }
 
     const loadedData = JSON.parse(rawData);
-    
-    // Basic validation to ensure it's not malformed
-    if (typeof loadedData !== 'object' || loadedData === null || !loadedData.products) {
-        throw new Error("Loaded data is not a valid AppData object.");
-    }
-    
-    // Ensure all top-level keys exist, falling back to initial data if not
-    let dataChanged = false;
-    for (const key of Object.keys(INITIAL_DATA) as Array<keyof AppData>) {
-        if (!loadedData.hasOwnProperty(key)) {
-            loadedData[key] = INITIAL_DATA[key];
-            dataChanged = true;
-        }
-    }
-    if (dataChanged) {
-        console.warn("Loaded data was missing keys, patched with initial data.");
-        localStorage.setItem(DATA_KEY, JSON.stringify(loadedData));
-    }
+    // On every load, normalize the data to handle migrations and ensure data integrity.
+    return normalizeData(loadedData);
 
-
-    return loadedData as AppData;
   } catch (error) {
     console.error("Failed to load or parse data from localStorage, falling back to initial data.", error);
     // If anything goes wrong, reset to a known good state
@@ -89,7 +135,6 @@ function saveData(dataUpdate: Partial<AppData>) {
     // Basic validation before saving
     if (!newData || typeof newData !== 'object' || !newData.products) {
         console.error("Attempted to save invalid data. Aborting.", newData);
-        // Optionally, throw an error or show a toast to the user
         return;
     }
 
@@ -116,6 +161,8 @@ function subscribe(listener: () => void): () => void {
 }
 
 function getSnapshot(): AppData {
+  // Always return the in-memory version for sync access.
+  // The store is updated via `notify`.
   return appData;
 }
 
@@ -142,9 +189,15 @@ export const dataStore = {
   subscribe,
   getSnapshot,
   saveData,
+  // Expose a function to reset data as a recovery mechanism
+  resetData: () => {
+    localStorage.setItem(DATA_KEY, JSON.stringify(INITIAL_DATA));
+    localStorage.setItem(VERSION_KEY, STORE_VERSION);
+    notify();
+  }
 };
 
 export function useAppData(): AppData {
   // useSyncExternalStore is the correct hook for subscribing to external mutable sources like localStorage
-  return useSyncExternalStore(dataStore.subscribe, dataStore.getSnapshot, dataStore.getSnapshot);
+  return useSyncExternalStore(dataStore.subscribe, dataStore.getSnapshot, () => ({...INITIAL_DATA}));
 }

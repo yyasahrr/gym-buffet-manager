@@ -90,7 +90,7 @@ export default function RecipesPage() {
 
     const filteredFoods = useMemo(() => {
         return foods.filter(food =>
-            food.status === activeTab &&
+            (food.status || 'active') === activeTab &&
             food.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [foods, searchQuery, activeTab]);
@@ -101,7 +101,7 @@ export default function RecipesPage() {
             setFormData({
                 name: food.name,
                 sellPrice: String(food.sellPrice),
-                recipeItems: food.recipe.length > 0 ? food.recipe : [{}],
+                recipeItems: food.recipe.length > 0 ? [...food.recipe] : [{}],
                 imageDataUrl: food.imageDataUrl || null,
             });
         } else {
@@ -298,6 +298,9 @@ export default function RecipesPage() {
                         {food.recipe.map(item => {
                             const ingredient = ingredientMap.get(item.ingredientId);
                             const unitLabel = ingredient ? unitLabels[ingredient.unit] : '';
+                            if (!ingredient) {
+                                return <li key={item.ingredientId} className="text-destructive">ماده اولیه حذف شده</li>
+                            }
                             return <li key={item.ingredientId}>{ingredient?.name} ({item.quantity} {unitLabel})</li>
                         })}
                     </ul>
@@ -306,7 +309,7 @@ export default function RecipesPage() {
                     <Separator className="my-4" />
                     <div className="grid grid-cols-3 gap-2 text-center text-sm w-full">
                         <div>
-                            <p className="font-semibold">{food.sellPrice.toLocaleString('fa-IR')} تومان</p>
+                            <p className="font-semibold">{(food.sellPrice || 0).toLocaleString('fa-IR')} تومان</p>
                             <p className="text-xs text-muted-foreground">قیمت فروش</p>
                         </div>
                         <div>
@@ -369,7 +372,7 @@ export default function RecipesPage() {
                                     <Input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleImageUpload} />
                                     {formData.imageDataUrl ? (
                                         <div className="relative aspect-video rounded-md overflow-hidden">
-                                            <Image src={formData.imageDataUrl} alt="Preview" layout="fill" objectFit="cover" />
+                                            <Image src={formData.imageDataUrl} alt="Preview" fill objectFit="cover" />
                                             <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setFormData(p => ({...p, imageDataUrl: null}))}>
                                                 <XCircle className="h-4 w-4" />
                                             </Button>

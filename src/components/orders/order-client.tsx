@@ -46,7 +46,7 @@ export default function OrderClient() {
         const defaultCustomer = activeCustomers.find((c: Customer) => c.name === 'مشتری حضوری');
         if (defaultCustomer) {
             setSelectedCustomerId(defaultCustomer.id);
-        } else {
+        } else if (activeCustomers.length > 0) {
             setSelectedCustomerId(activeCustomers[0].id);
         }
     }
@@ -102,7 +102,7 @@ export default function OrderClient() {
           cartItem.item.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
         );
       }
-      return [...prevCart, { item, quantity: 1 }];
+      return [...prevCart, { item: { ...item }, quantity: 1 }];
     });
   };
 
@@ -200,7 +200,11 @@ export default function OrderClient() {
             id: newOrderId,
             customerId: selectedCustomer.id,
             customerName: selectedCustomer.name,
-            items: cart,
+            items: cart.map(cartItem => ({
+                ...cartItem,
+                // Sanitize item to prevent circular references in JSON
+                item: { id: cartItem.item.id, name: cartItem.item.name, sellPrice: cartItem.item.sellPrice, imageId: cartItem.item.imageId }
+            })),
             total: cartTotal,
             createdAt: new Date().toISOString(),
             status: 'پرداخت شده',
@@ -348,8 +352,8 @@ export default function OrderClient() {
               <p className="text-muted-foreground text-center py-10">سبد خرید شما خالی است.</p>
             ) : (
               <div className="space-y-4">
-                {cart.map((cartItem) => (
-                  <div key={cartItem.item.id} className="flex items-center gap-4">
+                {cart.map((cartItem, index) => (
+                  <div key={`${cartItem.item.id}-${index}`} className="flex items-center gap-4">
                     <div className="flex-grow">
                       <p className="font-medium">{cartItem.item.name}</p>
                       <p className="text-sm text-muted-foreground">{cartItem.item.sellPrice.toLocaleString('fa-IR')} تومان</p>
@@ -421,17 +425,17 @@ export default function OrderClient() {
                 <div className="w-full space-y-2 text-sm pt-2">
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">موجودی فعلی</span>
-                        <span className={cn(selectedCustomerBalance < 0 && 'text-destructive')}>{selectedCustomerBalance.toLocaleString('fa-IR')} تومان</span>
+                        <span className={cn(selectedCustomerBalance < 0 && 'text-destructive')}>{(selectedCustomerBalance || 0).toLocaleString('fa-IR')} تومان</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">مجموع سفارش</span>
-                        <span>-{cartTotal.toLocaleString('fa-IR')} تومان</span>
+                        <span>-{(cartTotal || 0).toLocaleString('fa-IR')} تومان</span>
                     </div>
                     <Separator/>
                     <div className="flex justify-between font-semibold text-base">
                         <span className="text-muted-foreground">موجودی جدید</span>
                         <span className={cn(newBalance < 0 && 'text-destructive')}>
-                            {newBalance.toLocaleString('fa-IR')} تومان
+                            {(newBalance || 0).toLocaleString('fa-IR')} تومان
                         </span>
                     </div>
                 </div>
@@ -439,7 +443,7 @@ export default function OrderClient() {
 
                 <div className="w-full flex justify-between text-lg font-semibold pt-2">
                     <span>مجموع</span>
-                    <span>{cartTotal.toLocaleString('fa-IR')} تومان</span>
+                    <span>{(cartTotal || 0).toLocaleString('fa-IR')} تومان</span>
                 </div>
             <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" size="lg" onClick={handleCheckout} disabled={isCheckingOut || !selectedCustomerId}>
                 {isCheckingOut ? (

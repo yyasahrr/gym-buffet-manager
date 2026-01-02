@@ -34,7 +34,7 @@ export type RecipeItem = {
 };
 
 export type Food = {
-  id: string;
+  id:string;
   name: string;
   recipe: RecipeItem[];
   sellPrice: number;
@@ -43,8 +43,17 @@ export type Food = {
   status: 'active' | 'archived';
 };
 
+// This is a simplified version of Product | Food for storage in an Order.
+// It avoids circular references when serializing to JSON.
+export type OrderItemSanitized = {
+  id: string;
+  name: string;
+  sellPrice: number;
+  imageId: string;
+}
+
 export type OrderItem = {
-  item: Product | Food;
+  item: Product | Food | OrderItemSanitized; // Use the full object in memory, but sanitized version in storage
   quantity: number;
 };
 
