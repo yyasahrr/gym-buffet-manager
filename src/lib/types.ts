@@ -21,7 +21,6 @@ export const unitLabels: Record<Unit, string> = {
 export type Ingredient = {
   id: string;
   name: string;
-  variantName?: string; // e.g., "Single" vs "Pack of 30" for eggs
   stock: number;
   avgBuyPrice: number; // Price per single unit ('g', 'ml', 'count')
   imageUrl?: string; // Changed from imageId to store data URL
@@ -70,7 +69,7 @@ export type Expense = {
 };
 
 export type Purchase = {
-    id: string;
+    id:string;
     ingredientId: string;
     quantity: number;
     purchasePrice: number; // Price for the quantity purchased

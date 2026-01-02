@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { PlusCircle, ShoppingCart } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import {
   format,
 } from 'date-fns';
@@ -36,20 +36,35 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { type Ingredient, type Purchase, unitLabels } from '@/lib/types';
+import { type Ingredient, type Purchase, unitLabels, type Unit } from '@/lib/types';
 import { ingredients as initialIngredients, purchases as initialPurchases } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
 const PURCHASES_STORAGE_KEY = 'gym-canteen-purchases';
+
+const packagingTypes = [
+    "بسته", "شیشه", "قوطی", "کارتن", "شانه", "کیسه"
+];
 
 export default function PurchasesPage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [entryMode, setEntryMode] = useState<'direct' | 'package'>('direct');
+
+  // State for direct entry
+  const [directQuantity, setDirectQuantity] = useState('');
+
+  // State for package entry
+  const [packageCount, setPackageCount] = useState('');
+  const [packageSize, setPackageSize] = useState('');
+  const [packagingType, setPackagingType] = useState('');
+
+
   const [newPurchase, setNewPurchase] = useState({
     ingredientId: '',
-    quantity: '',
     purchasePrice: '',
     date: new Date().toISOString(),
   });
@@ -65,9 +80,31 @@ export default function PurchasesPage() {
 
   const ingredientMap = useMemo(() => new Map(ingredients.map(i => [i.id, i])), [ingredients]);
 
+  const resetForm = () => {
+    setNewPurchase({ ingredientId: '', purchasePrice: '', date: new Date().toISOString() });
+    setDirectQuantity('');
+    setPackageCount('');
+    setPackageSize('');
+    setPackagingType('');
+    setEntryMode('direct');
+  }
+
+  const computedQuantity = useMemo(() => {
+    if (entryMode === 'package') {
+        const count = parseFloat(packageCount);
+        const size = parseFloat(packageSize);
+        if (!isNaN(count) && !isNaN(size) && count > 0 && size > 0) {
+            return count * size;
+        }
+    }
+    return parseFloat(directQuantity) || 0;
+  }, [entryMode, directQuantity, packageCount, packageSize]);
+
+
   const handleAddPurchase = () => {
-    const { ingredientId, quantity, purchasePrice, date } = newPurchase;
-    if (!ingredientId || !quantity || !purchasePrice || parseFloat(quantity) <= 0 || parseFloat(purchasePrice) <= 0) {
+    const { ingredientId, purchasePrice, date } = newPurchase;
+    
+    if (!ingredientId || !computedQuantity || !purchasePrice || computedQuantity <= 0 || parseFloat(purchasePrice) <= 0) {
       toast({
         variant: 'destructive',
         title: 'خطا',
@@ -79,7 +116,7 @@ export default function PurchasesPage() {
     const selectedIngredient = ingredientMap.get(ingredientId);
     if (!selectedIngredient) return;
 
-    const qty = parseFloat(quantity);
+    const qty = computedQuantity;
     const price = parseFloat(purchasePrice);
 
     // Update ingredient stock and average buy price
@@ -87,9 +124,12 @@ export default function PurchasesPage() {
       if (ing.id === ingredientId) {
         const currentTotalValue = ing.avgBuyPrice * ing.stock;
         const newTotalStock = ing.stock + qty;
-        const newPurchaseValue = price; // The total price for the new quantity
+        
+        // The price is for the entire quantity purchased (e.g. price for 3 cases)
+        const newPurchaseValue = price; 
         const newTotalValue = currentTotalValue + newPurchaseValue;
         const newAvgPrice = newTotalStock > 0 ? newTotalValue / newTotalStock : 0;
+        
         return { ...ing, stock: newTotalStock, avgBuyPrice: newAvgPrice };
       }
       return ing;
@@ -113,11 +153,11 @@ export default function PurchasesPage() {
 
     toast({
       title: 'موفقیت‌آمیز',
-      description: `خرید ${qty} ${unitLabels[selectedIngredient.unit]} از ${selectedIngredient.name} ثبت شد.`,
+      description: `خرید ${qty.toLocaleString('fa-IR')} ${unitLabels[selectedIngredient.unit]} از ${selectedIngredient.name} ثبت شد.`,
     });
 
     setIsDialogOpen(false);
-    setNewPurchase({ ingredientId: '', quantity: '', purchasePrice: '', date: new Date().toISOString() });
+    resetForm();
   };
   
   const selectedIngredientForDialog = ingredientMap.get(newPurchase.ingredientId);
@@ -133,41 +173,67 @@ export default function PurchasesPage() {
                 <PlusCircle className="ml-2 h-4 w-4" /> ثبت خرید
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>ثبت خرید جدید</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="ingredient" className="text-right">ماده اولیه</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="ingredient">ماده اولیه</Label>
                   <Select value={newPurchase.ingredientId} onValueChange={val => setNewPurchase({...newPurchase, ingredientId: val})}>
-                    <SelectTrigger className="col-span-3">
+                    <SelectTrigger id="ingredient">
                       <SelectValue placeholder="انتخاب ماده اولیه" />
                     </SelectTrigger>
                     <SelectContent>
                       {ingredients.map(ing => (
-                        <SelectItem key={ing.id} value={ing.id}>{ing.name} {ing.variantName ? `(${ing.variantName})` : ''}</SelectItem>
+                        <SelectItem key={ing.id} value={ing.id}>{ing.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="quantity" className="text-right">
-                    مقدار {selectedIngredientForDialog ? `(${unitLabels[selectedIngredientForDialog.unit]})` : ''}
-                  </Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={newPurchase.quantity}
-                    onChange={(e) => setNewPurchase({ ...newPurchase, quantity: e.target.value })}
-                    className="col-span-3"
-                    disabled={!newPurchase.ingredientId}
-                    placeholder="مثال: 2.5"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right">
+                <Tabs value={entryMode} onValueChange={(value) => setEntryMode(value as 'direct' | 'package')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="direct" disabled={!selectedIngredientForDialog}>ورود مستقیم</TabsTrigger>
+                        <TabsTrigger value="package" disabled={!selectedIngredientForDialog}>بر اساس بسته</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="direct" className="space-y-2 pt-2">
+                        <Label htmlFor="quantity">
+                            مقدار {selectedIngredientForDialog ? `(${unitLabels[selectedIngredientForDialog.unit]})` : ''}
+                        </Label>
+                        <Input
+                            id="quantity"
+                            type="number"
+                            value={directQuantity}
+                            onChange={(e) => setDirectQuantity(e.target.value)}
+                            disabled={!newPurchase.ingredientId}
+                            placeholder="مثال: 2.5"
+                        />
+                    </TabsContent>
+                    <TabsContent value="package" className="space-y-4 pt-2">
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="packageCount">تعداد بسته</Label>
+                                <Input id="packageCount" type="number" value={packageCount} onChange={e => setPackageCount(e.target.value)} placeholder="مثال: 3"/>
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="packageSize">
+                                    مقدار در هر بسته {selectedIngredientForDialog ? `(${unitLabels[selectedIngredientForDialog.unit]})` : ''}
+                                 </Label>
+                                <Input id="packageSize" type="number" value={packageSize} onChange={e => setPackageSize(e.target.value)} placeholder="مثال: 5"/>
+                            </div>
+                         </div>
+                         <div>
+                            <p className="text-sm text-muted-foreground">
+                                مقدار کل محاسبه شده: <span className="font-bold text-primary">{computedQuantity.toLocaleString('fa-IR')} {selectedIngredientForDialog ? unitLabels[selectedIngredientForDialog.unit] : ''}</span>
+                            </p>
+                         </div>
+                    </TabsContent>
+                </Tabs>
+
+
+                <div className="space-y-2">
+                  <Label htmlFor="price">
                     مبلغ کل خرید (تومان)
                   </Label>
                   <Input
@@ -175,13 +241,13 @@ export default function PurchasesPage() {
                     type="number"
                     value={newPurchase.purchasePrice}
                     onChange={(e) => setNewPurchase({ ...newPurchase, purchasePrice: e.target.value })}
-                    className="col-span-3"
+                    className=""
                     disabled={!newPurchase.ingredientId}
                     placeholder="مثال: 250000"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="date" className="text-right">
+                <div className="space-y-2">
+                  <Label htmlFor="date">
                     تاریخ
                   </Label>
                   <Input
@@ -189,15 +255,15 @@ export default function PurchasesPage() {
                     type="date"
                     value={format(new Date(newPurchase.date), 'yyyy-MM-dd')}
                     onChange={(e) => setNewPurchase({ ...newPurchase, date: new Date(e.target.value).toISOString() })}
-                    className="col-span-3"
+                    className=""
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="secondary" onClick={() => { setIsDialogOpen(false); resetForm();}}>
                   لغو
                 </Button>
-                <Button type="submit" onClick={handleAddPurchase} disabled={!newPurchase.ingredientId || !newPurchase.quantity || !newPurchase.purchasePrice}>
+                <Button type="submit" onClick={handleAddPurchase} disabled={!newPurchase.ingredientId || !computedQuantity || !newPurchase.purchasePrice}>
                   ثبت
                 </Button>
               </DialogFooter>
@@ -226,7 +292,7 @@ export default function PurchasesPage() {
                     const ingredient = ingredientMap.get(pur.ingredientId);
                     return (
                         <TableRow key={pur.id}>
-                            <TableCell>{ingredient ? `${ingredient.name} ${ingredient.variantName ? `(${ingredient.variantName})` : ''}` : 'حذف شده'}</TableCell>
+                            <TableCell>{ingredient ? ingredient.name : 'حذف شده'}</TableCell>
                             <TableCell>{pur.quantity.toLocaleString('fa-IR')} {ingredient ? unitLabels[ingredient.unit] : ''}</TableCell>
                             <TableCell>{pur.purchasePrice.toLocaleString('fa-IR')} تومان</TableCell>
                             <TableCell>{formatJalali(new Date(pur.date), 'yyyy/MM/dd')}</TableCell>

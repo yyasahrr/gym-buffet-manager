@@ -42,19 +42,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
 
-const packagingTypes = [
-    "دانه‌ای",
-    "شیشه",
-    "قوطی",
-    "کیسه",
-    "جعبه",
-];
-
 export default function IngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newIngredient, setNewIngredient] = useState<{name: string; variantName: string; unit: Unit, imageUrl?: string}>({ name: '', variantName: '', unit: 'g' });
+    const [newIngredient, setNewIngredient] = useState<{name: string; unit: Unit, imageUrl?: string}>({ name: '', unit: 'g' });
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -71,8 +63,7 @@ export default function IngredientsPage() {
 
     const filteredIngredients = useMemo(() => {
         return ingredients.filter(ingredient =>
-            ingredient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (ingredient.variantName && ingredient.variantName.toLowerCase().includes(searchQuery.toLowerCase()))
+            ingredient.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [ingredients, searchQuery]);
 
@@ -88,7 +79,7 @@ export default function IngredientsPage() {
     };
     
     const handleAddIngredient = () => {
-        const { name, variantName, unit, imageUrl } = newIngredient;
+        const { name, unit, imageUrl } = newIngredient;
         if (!name || !unit) {
             toast({
                 variant: "destructive",
@@ -101,7 +92,6 @@ export default function IngredientsPage() {
         const newIngredientData: Ingredient = {
             id: `ing-${Date.now()}`,
             name,
-            variantName: variantName || undefined,
             stock: 0,
             avgBuyPrice: 0,
             imageUrl,
@@ -114,11 +104,11 @@ export default function IngredientsPage() {
         
         toast({
             title: "موفقیت‌آمیز",
-            description: `ماده اولیه "${name} ${variantName || ''}" با موفقیت اضافه شد. برای افزودن موجودی به صفحه خرید مراجعه کنید.`,
+            description: `ماده اولیه "${name}" با موفقیت اضافه شد. برای افزودن موجودی به صفحه خرید مراجعه کنید.`,
         });
 
         setIsDialogOpen(false);
-        setNewIngredient({ name: '', variantName: '', unit: 'g' });
+        setNewIngredient({ name: '', unit: 'g' });
     };
 
     return (
@@ -150,19 +140,7 @@ export default function IngredientsPage() {
                                     placeholder="مثال: سینه مرغ"
                                   />
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="variantName" className="text-right">نوع بسته‌بندی (اختیاری)</Label>
-                                    <Select value={newIngredient.variantName} onValueChange={(value) => setNewIngredient({...newIngredient, variantName: value})}>
-                                        <SelectTrigger className="col-span-3">
-                                            <SelectValue placeholder="انتخاب نوع بسته‌بندی" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {packagingTypes.map((type) => (
-                                                <SelectItem key={type} value={type}>{type}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="unit" className="text-right">واحد پایه</Label>
                                     <Select value={newIngredient.unit} onValueChange={(value) => setNewIngredient({...newIngredient, unit: value as Unit})}>
@@ -213,7 +191,6 @@ export default function IngredientsPage() {
                             </TableHeader>
                             <TableBody>
                                 {isClient && filteredIngredients.map(ingredient => {
-                                    const displayName = `${ingredient.name} ${ingredient.variantName ? `(${ingredient.variantName})` : ''}`;
                                     const stockToDisplay = ingredient.stock;
                                     const unitLabel = unitLabels[ingredient.unit];
                                     
@@ -222,7 +199,7 @@ export default function IngredientsPage() {
                                             <TableCell className="hidden sm:table-cell align-middle">
                                                 {ingredient.imageUrl ? (
                                                     <Image
-                                                        alt={displayName}
+                                                        alt={ingredient.name}
                                                         className="aspect-square rounded-md object-cover"
                                                         height="64"
                                                         src={ingredient.imageUrl}
@@ -234,7 +211,7 @@ export default function IngredientsPage() {
                                                     </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="font-medium align-middle">{displayName}</TableCell>
+                                            <TableCell className="font-medium align-middle">{ingredient.name}</TableCell>
                                             <TableCell className="align-middle">
                                                 <Badge variant={stockToDisplay > 0 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
                                             </TableCell>
