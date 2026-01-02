@@ -1,307 +1,319 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { PlusCircle } from 'lucide-react';
-import {
-  format,
-} from 'date-fns';
+import { PlusCircle, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
 import { format as formatJalali } from 'date-fns-jalali';
 
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { type Ingredient, type Purchase, unitLabels, type Unit } from '@/lib/types';
-import { ingredients as initialIngredients, purchases as initialPurchases } from '@/lib/data';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { type Ingredient, type Product, type Purchase, type PurchaseItem, unitLabels } from '@/lib/types';
+import { ingredients as initialIngredients, products as initialProducts, purchases as initialPurchases } from '@/lib/data';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
+const PRODUCTS_STORAGE_KEY = 'gym-canteen-products';
 const PURCHASES_STORAGE_KEY = 'gym-canteen-purchases';
-
-const packagingTypes = [
-    "بسته", "شیشه", "قوطی", "کارتن", "شانه", "کیسه"
-];
 
 export default function PurchasesPage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [entryMode, setEntryMode] = useState<'direct' | 'package'>('direct');
 
-  // State for direct entry
-  const [directQuantity, setDirectQuantity] = useState('');
+  // New state for multi-line purchase form
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString());
+  const [transportCost, setTransportCost] = useState('');
+  const [note, setNote] = useState('');
+  const [purchaseItems, setPurchaseItems] = useState<Partial<PurchaseItem>[]>([{}]);
 
-  // State for package entry
-  const [packageCount, setPackageCount] = useState('');
-  const [packageSize, setPackageSize] = useState('');
-  const [packagingType, setPackagingType] = useState('');
-
-
-  const [newPurchase, setNewPurchase] = useState({
-    ingredientId: '',
-    purchasePrice: '',
-    date: new Date().toISOString(),
-  });
   const { toast } = useToast();
 
   useEffect(() => {
     const storedIngredients = localStorage.getItem(INGREDIENTS_STORAGE_KEY);
     setIngredients(storedIngredients ? JSON.parse(storedIngredients) : initialIngredients);
+
+    const storedProducts = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+    setProducts(storedProducts ? JSON.parse(storedProducts) : initialProducts);
     
     const storedPurchases = localStorage.getItem(PURCHASES_STORAGE_KEY);
     setPurchases(storedPurchases ? JSON.parse(storedPurchases) : initialPurchases);
   }, []);
 
   const activeIngredients = useMemo(() => ingredients.filter(i => i.status === 'active'), [ingredients]);
-  const ingredientMap = useMemo(() => new Map(ingredients.map(i => [i.id, i])), [ingredients]);
+  const activeProducts = useMemo(() => products.filter(p => p.status === 'active'), [products]);
+  
+  const allItemsMap = useMemo(() => {
+    const map = new Map<string, (Product | Ingredient) & { type: 'product' | 'ingredient' }>();
+    activeIngredients.forEach(i => map.set(`ingredient-${i.id}`, { ...i, type: 'ingredient' }));
+    activeProducts.forEach(p => map.set(`product-${p.id}`, { ...p, type: 'product' }));
+    return map;
+  }, [activeIngredients, activeProducts]);
 
   const resetForm = () => {
-    setNewPurchase({ ingredientId: '', purchasePrice: '', date: new Date().toISOString() });
-    setDirectQuantity('');
-    setPackageCount('');
-    setPackageSize('');
-    setPackagingType('');
-    setEntryMode('direct');
-  }
+    setPurchaseDate(new Date().toISOString());
+    setTransportCost('');
+    setNote('');
+    setPurchaseItems([{}]);
+  };
 
-  const computedQuantity = useMemo(() => {
-    if (entryMode === 'package') {
-        const count = parseFloat(packageCount);
-        const size = parseFloat(packageSize);
-        if (!isNaN(count) && !isNaN(size) && count > 0 && size > 0) {
-            return count * size;
-        }
+  const addPurchaseLine = () => setPurchaseItems([...purchaseItems, {}]);
+  const removePurchaseLine = (index: number) => {
+    if (purchaseItems.length > 1) {
+      setPurchaseItems(purchaseItems.filter((_, i) => i !== index));
     }
-    return parseFloat(directQuantity) || 0;
-  }, [entryMode, directQuantity, packageCount, packageSize]);
+  };
 
+  const handleItemChange = (index: number, key: string, value: any) => {
+    const updatedItems = [...purchaseItems];
+    updatedItems[index] = { ...updatedItems[index], [key]: value };
+    
+    if (key === 'itemId') {
+      const selectedItem = allItemsMap.get(value);
+      if(selectedItem) {
+        updatedItems[index].type = selectedItem.type;
+        updatedItems[index].itemName = selectedItem.name;
+      }
+    }
+    setPurchaseItems(updatedItems);
+  };
+  
+  const subtotal = useMemo(() => {
+    return purchaseItems.reduce((sum, item) => {
+      const itemCost = (item.quantity || 0) * (item.unitPrice || 0);
+      return sum + itemCost;
+    }, 0);
+  }, [purchaseItems]);
 
   const handleAddPurchase = () => {
-    const { ingredientId, purchasePrice, date } = newPurchase;
+    // --- Validation ---
+    const finalTransportCost = parseFloat(transportCost) || 0;
     
-    if (!ingredientId || !computedQuantity || !purchasePrice || computedQuantity <= 0 || parseFloat(purchasePrice) <= 0) {
-      toast({
-        variant: 'destructive',
-        title: 'خطا',
-        description: 'لطفاً تمام فیلدها را با مقادیر معتبر پر کنید.',
-      });
+    const validItems = purchaseItems.filter(
+      item => item.itemId && (item.quantity || 0) > 0 && (item.unitPrice || 0) > 0
+    ).map(item => ({...item, id: `p-item-${Date.now()}-${Math.random()}`} as PurchaseItem));
+
+    if (validItems.length === 0) {
+      toast({ variant: 'destructive', title: 'خطا', description: 'حداقل یک ردیف خرید معتبر وارد کنید.' });
       return;
     }
 
-    const selectedIngredient = ingredientMap.get(ingredientId);
-    if (!selectedIngredient) return;
+    const totalBaseCost = validItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
-    const qty = computedQuantity;
-    const price = parseFloat(purchasePrice);
+    // --- Logic ---
+    const ingredientsToUpdate = new Map<string, Ingredient>();
+    const productsToUpdate = new Map<string, Product>();
 
-    // Update ingredient stock and average buy price
-    const updatedIngredients = ingredients.map(ing => {
-      if (ing.id === ingredientId) {
-        const currentTotalValue = ing.avgBuyPrice * ing.stock;
-        const newTotalStock = ing.stock + qty;
-        
-        const newPurchaseValue = price; 
-        const newTotalValue = currentTotalValue + newPurchaseValue;
-        const newAvgPrice = newTotalStock > 0 ? newTotalValue / newTotalStock : 0;
-        
-        return { ...ing, stock: newTotalStock, avgBuyPrice: newAvgPrice };
+    for (const item of validItems) {
+      const itemBaseCost = item.quantity * item.unitPrice;
+      const transportShare = totalBaseCost > 0 ? (itemBaseCost / totalBaseCost) * finalTransportCost : 0;
+      const finalUnitCost = item.unitPrice + (transportShare / item.quantity);
+      
+      if (item.type === 'ingredient') {
+        const originalIngredient = ingredients.find(i => i.id === item.itemId.split('-')[1]);
+        if (originalIngredient) {
+          const oldStock = originalIngredient.stock;
+          const oldAvg = originalIngredient.avgBuyPrice;
+          const newQty = item.quantity;
+
+          const newAvgPrice = oldStock + newQty > 0 
+            ? ((oldStock * oldAvg) + (newQty * finalUnitCost)) / (oldStock + newQty)
+            : finalUnitCost;
+          
+          const updatedIngredient = {
+            ...originalIngredient,
+            stock: oldStock + newQty,
+            avgBuyPrice: newAvgPrice
+          };
+          ingredientsToUpdate.set(originalIngredient.id, updatedIngredient);
+        }
+      } else { // Product
+        const originalProduct = products.find(p => p.id === item.itemId.split('-')[1]);
+        if (originalProduct) {
+           const oldStock = originalProduct.stock;
+           const oldAvg = originalProduct.avgBuyPrice;
+           const newQty = item.quantity;
+           
+           const newAvgPrice = oldStock + newQty > 0 
+             ? ((oldStock * oldAvg) + (newQty * finalUnitCost)) / (oldStock + newQty)
+             : finalUnitCost;
+
+           const updatedProduct = {
+             ...originalProduct,
+             stock: oldStock + newQty,
+             avgBuyPrice: newAvgPrice
+           };
+           productsToUpdate.set(originalProduct.id, updatedProduct);
+        }
       }
-      return ing;
-    });
+    }
     
-    setIngredients(updatedIngredients);
-    localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(updatedIngredients));
+    // --- State Update ---
+    const finalIngredients = ingredients.map(i => ingredientsToUpdate.get(i.id) || i);
+    const finalProducts = products.map(p => productsToUpdate.get(p.id) || p);
+    
+    setIngredients(finalIngredients);
+    localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(finalIngredients));
+    setProducts(finalProducts);
+    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(finalProducts));
 
-    // Add to purchases history
-    const purchaseData: Purchase = {
+    const newPurchase: Purchase = {
       id: `pur-${Date.now()}`,
-      ingredientId,
-      quantity: qty,
-      purchasePrice: price,
-      date,
+      date: purchaseDate,
+      items: validItems,
+      transportCost: finalTransportCost,
+      note: note,
     };
     
-    const updatedPurchases = [...purchases, purchaseData];
+    const updatedPurchases = [...purchases, newPurchase];
     setPurchases(updatedPurchases);
     localStorage.setItem(PURCHASES_STORAGE_KEY, JSON.stringify(updatedPurchases));
 
-    toast({
-      title: 'موفقیت‌آمیز',
-      description: `خرید ${qty.toLocaleString('fa-IR')} ${unitLabels[selectedIngredient.unit]} از ${selectedIngredient.name} ثبت شد.`,
-    });
+    toast({ title: 'موفقیت‌آمیز', description: 'خرید جدید با موفقیت ثبت و موجودی انبار به روز شد.' });
 
     setIsDialogOpen(false);
     resetForm();
   };
-  
-  const selectedIngredientForDialog = ingredientMap.get(newPurchase.ingredientId);
 
   return (
     <div className="flex flex-col h-full">
       <Header breadcrumbs={[]} activeBreadcrumb="خرید" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
-        <PageHeader title="ثبت خرید مواد اولیه">
-          <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) resetForm(); setIsDialogOpen(isOpen); }}>
+        <PageHeader title="ثبت خرید">
+          <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if (!isOpen) resetForm(); setIsDialogOpen(isOpen); }}>
             <DialogTrigger asChild>
               <Button>
-                <PlusCircle className="ml-2 h-4 w-4" /> ثبت خرید
+                <PlusCircle className="ml-2 h-4 w-4" /> ثبت فاکتور خرید
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>ثبت خرید جدید</DialogTitle>
+                <DialogTitle>ثبت فاکتور خرید جدید</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ingredient">ماده اولیه</Label>
-                  <Select value={newPurchase.ingredientId} onValueChange={val => setNewPurchase({...newPurchase, ingredientId: val})}>
-                    <SelectTrigger id="ingredient">
-                      <SelectValue placeholder="انتخاب ماده اولیه" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeIngredients.map(ing => (
-                        <SelectItem key={ing.id} value={ing.id}>{ing.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">تاریخ فاکتور</Label>
+                    <Input id="date" type="date" value={format(new Date(purchaseDate), 'yyyy-MM-dd')} onChange={(e) => setPurchaseDate(new Date(e.target.value).toISOString())} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="transportCost">هزینه حمل و نقل (تومان)</Label>
+                    <Input id="transportCost" type="number" value={transportCost} onChange={(e) => setTransportCost(e.target.value)} placeholder="0" />
+                  </div>
                 </div>
 
-                <Tabs value={entryMode} onValueChange={(value) => setEntryMode(value as 'direct' | 'package')} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="direct" disabled={!selectedIngredientForDialog}>ورود مستقیم</TabsTrigger>
-                        <TabsTrigger value="package" disabled={!selectedIngredientForDialog}>بر اساس بسته</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="direct" className="space-y-2 pt-2">
-                        <Label htmlFor="quantity">
-                            {selectedIngredientForDialog
-                                ? `مقدار (${unitLabels[selectedIngredientForDialog.unit]})`
-                                : 'مقدار'
-                            }
-                        </Label>
-                        <Input
-                            id="quantity"
-                            type="number"
-                            value={directQuantity}
-                            onChange={(e) => setDirectQuantity(e.target.value)}
-                            disabled={!newPurchase.ingredientId}
-                            placeholder="مثال: 2.5"
-                        />
-                    </TabsContent>
-                    <TabsContent value="package" className="space-y-4 pt-2">
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="packageCount">تعداد بسته</Label>
-                                <Input id="packageCount" type="number" value={packageCount} onChange={e => setPackageCount(e.target.value)} placeholder="مثال: 3"/>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="packageSize">
-                                    {selectedIngredientForDialog
-                                        ? `مقدار در هر بسته (${unitLabels[selectedIngredientForDialog.unit]})`
-                                        : 'مقدار در هر بسته'
-                                    }
-                                 </Label>
-                                <Input id="packageSize" type="number" value={packageSize} onChange={e => setPackageSize(e.target.value)} placeholder="مثال: 5"/>
-                            </div>
-                         </div>
-                         <div>
-                            <p className="text-sm text-muted-foreground">
-                                مقدار کل محاسبه شده: <span className="font-bold text-primary">{computedQuantity.toLocaleString('fa-IR')} {selectedIngredientForDialog ? unitLabels[selectedIngredientForDialog.unit] : ''}</span>
-                            </p>
-                         </div>
-                    </TabsContent>
-                </Tabs>
+                <Separator className="my-4" />
+                <Label className="font-bold">اقلام خریداری شده</Label>
+                
+                <div className="space-y-4">
+                  {purchaseItems.map((item, index) => {
+                     const selectedItem = allItemsMap.get(item.itemId || '');
+                     const unitLabel = selectedItem && 'unit' in selectedItem ? unitLabels[selectedItem.unit] : 'عدد';
 
+                    return (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-end p-2 border rounded-md">
+                          <div className="col-span-12 md:col-span-4 space-y-2">
+                            <Label>نام کالا</Label>
+                            <Select value={item.itemId} onValueChange={val => handleItemChange(index, 'itemId', val)}>
+                              <SelectTrigger><SelectValue placeholder="انتخاب کالا..." /></SelectTrigger>
+                              <SelectContent>
+                                <SelectGroup>
+                                    <Label className='px-4 py-2 text-sm font-semibold'>محصولات</Label>
+                                    {activeProducts.map(p => <SelectItem key={`product-${p.id}`} value={`product-${p.id}`}>{p.name}</SelectItem>)}
+                                </SelectGroup>
+                                <SelectGroup>
+                                    <Label className='px-4 py-2 text-sm font-semibold'>مواد اولیه</Label>
+                                    {activeIngredients.map(i => <SelectItem key={`ingredient-${i.id}`} value={`ingredient-${i.id}`}>{i.name}</SelectItem>)}
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-6 md:col-span-3 space-y-2">
+                            <Label>مقدار ({unitLabel})</Label>
+                            <Input type="number" placeholder="0" value={item.quantity || ''} onChange={e => handleItemChange(index, 'quantity', parseFloat(e.target.value))} />
+                          </div>
+                          <div className="col-span-6 md:col-span-4 space-y-2">
+                            <Label>قیمت واحد (تومان)</Label>
+                            <Input type="number" placeholder="0" value={item.unitPrice || ''} onChange={e => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} />
+                          </div>
+                          <div className="col-span-12 md:col-span-1 flex justify-end">
+                            <Button variant="ghost" size="icon" onClick={() => removePurchaseLine(index)} disabled={purchaseItems.length === 1}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                    )
+                  })}
+                </div>
+                <Button variant="outline" size="sm" onClick={addPurchaseLine} className="mt-2">
+                  <PlusCircle className="ml-2 h-4 w-4" /> افزودن ردیف
+                </Button>
 
-                <div className="space-y-2">
-                  <Label htmlFor="price">
-                    مبلغ کل خرید (تومان)
-                  </Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={newPurchase.purchasePrice}
-                    onChange={(e) => setNewPurchase({ ...newPurchase, purchasePrice: e.target.value })}
-                    className=""
-                    disabled={!newPurchase.ingredientId}
-                    placeholder="مثال: 250000"
-                  />
+                <Separator className="my-4" />
+                
+                 <div className="space-y-2">
+                    <Label htmlFor="note">یادداشت (اختیاری)</Label>
+                    <Textarea id="note" value={note} onChange={e => setNote(e.target.value)} />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date">
-                    تاریخ
-                  </Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={format(new Date(newPurchase.date), 'yyyy-MM-dd')}
-                    onChange={(e) => setNewPurchase({ ...newPurchase, date: new Date(e.target.value).toISOString() })}
-                    className=""
-                  />
+
+                <div className='mt-4 p-4 bg-muted/50 rounded-lg space-y-2'>
+                    <div className='flex justify-between items-center'>
+                        <span className='text-muted-foreground'>جمع کل اقلام:</span>
+                        <span className='font-semibold'>{Math.round(subtotal).toLocaleString('fa-IR')} تومان</span>
+                    </div>
+                     <div className='flex justify-between items-center'>
+                        <span className='text-muted-foreground'>هزینه حمل:</span>
+                        <span className='font-semibold'>{Math.round(parseFloat(transportCost) || 0).toLocaleString('fa-IR')} تومان</span>
+                    </div>
+                     <div className='flex justify-between items-center text-lg font-bold'>
+                        <span className=''>مبلغ نهایی فاکتور:</span>
+                        <span className='text-primary'>{Math.round(subtotal + (parseFloat(transportCost) || 0)).toLocaleString('fa-IR')} تومان</span>
+                    </div>
                 </div>
+
               </div>
-              <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => { setIsDialogOpen(false); resetForm();}}>
-                  لغو
-                </Button>
-                <Button type="submit" onClick={handleAddPurchase} disabled={!newPurchase.ingredientId || !computedQuantity || !newPurchase.purchasePrice}>
-                  ثبت
-                </Button>
+              <DialogFooter className="pt-4 border-t">
+                <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>لغو</Button>
+                <Button type="submit" onClick={handleAddPurchase}>ثبت فاکتور</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </PageHeader>
         
         <Card>
-            <CardHeader>
-                <CardTitle>تاریخچه خرید</CardTitle>
-                <CardDescription>لیست تمام خریدهای ثبت شده برای مواد اولیه.</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <CardHeader>
+            <CardTitle>تاریخچه خرید</CardTitle>
+            <CardDescription>لیست تمام فاکتورهای خرید ثبت شده.</CardDescription>
+          </CardHeader>
+          <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ماده اولیه</TableHead>
-                  <TableHead>مقدار</TableHead>
-                  <TableHead>مبلغ کل</TableHead>
                   <TableHead>تاریخ</TableHead>
+                  <TableHead>اقلام</TableHead>
+                  <TableHead>هزینه حمل</TableHead>
+                  <TableHead>مبلغ نهایی</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {purchases.length > 0 ? (
                   [...purchases].reverse().map(pur => {
-                    const ingredient = ingredientMap.get(pur.ingredientId);
+                    const totalValue = pur.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0) + pur.transportCost;
                     return (
                         <TableRow key={pur.id}>
-                            <TableCell>{ingredient ? ingredient.name : 'حذف شده'}</TableCell>
-                            <TableCell>{pur.quantity.toLocaleString('fa-IR')} {ingredient ? unitLabels[ingredient.unit] : ''}</TableCell>
-                            <TableCell>{pur.purchasePrice.toLocaleString('fa-IR')} تومان</TableCell>
                             <TableCell>{formatJalali(new Date(pur.date), 'yyyy/MM/dd')}</TableCell>
+                            <TableCell>{pur.items.map(i => i.itemName).join('، ')}</TableCell>
+                            <TableCell>{pur.transportCost.toLocaleString('fa-IR')} تومان</TableCell>
+                            <TableCell className="font-semibold">{Math.round(totalValue).toLocaleString('fa-IR')} تومان</TableCell>
                         </TableRow>
                     )
                   })
@@ -314,7 +326,7 @@ export default function PurchasesPage() {
                 )}
               </TableBody>
             </Table>
-            </CardContent>
+          </CardContent>
         </Card>
       </main>
     </div>

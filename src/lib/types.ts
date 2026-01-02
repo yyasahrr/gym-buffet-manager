@@ -70,10 +70,15 @@ export type Expense = {
     date: string;
 };
 
-export type Purchase = {
-    id:string;
-    ingredientId: string;
+export type PurchaseItem = {
+    id: string; // Unique ID for the line item itself
+    type: 'product' | 'ingredient';
+    itemId: string;
+    itemName: string; // denormalized for easier display
     quantity: number;
-    purchasePrice: number; // Price for the quantity purchased
-    date: string;
+    unitPrice: number;
 };
+
+export type Purchase = {
+    id: string;
+    date
