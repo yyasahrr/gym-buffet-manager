@@ -199,5 +199,5 @@ export const dataStore = {
 
 export function useAppData(): AppData {
   // useSyncExternalStore is the correct hook for subscribing to external mutable sources like localStorage
-  return useSyncExternalStore(dataStore.subscribe, dataStore.getSnapshot, () => ({...INITIAL_DATA}));
+  return useSyncExternalStore(dataStore.subscribe, dataStore.getSnapshot, () => INITIAL_DATA);
 }
