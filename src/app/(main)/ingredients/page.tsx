@@ -4,7 +4,8 @@ import Image from 'next/image';
 import { PlusCircle } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { ingredients as initialIngredients } from '@/lib/data';
-import { type Ingredient, type Unit, unitLabels } from '@/lib/types';
+import { type Ingredient, type Unit } from '@/lib/types';
+import { unitLabels } from '@/lib/types';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Combobox } from '@/components/ui/combobox';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
@@ -72,12 +72,6 @@ export default function IngredientsPage() {
             localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(initialIngredients));
         }
     }, []);
-
-    const uniqueIngredientNames = useMemo(() => {
-        const names = new Set(ingredients.map(i => i.name));
-        return Array.from(names).map(name => ({ value: name, label: name }));
-    }, [ingredients]);
-
 
     const filteredIngredients = useMemo(() => {
         return ingredients.filter(ingredient =>
@@ -126,23 +120,6 @@ export default function IngredientsPage() {
         return quantity * pricePerUnit;
     }, [newIngredient.stock, newIngredient.avgBuyPrice]);
     
-    const handleNameSelect = (name: string) => {
-        const existingIngredient = ingredients.find(i => i.name === name);
-        if (existingIngredient) {
-            setNewIngredient({
-                ...newIngredient,
-                name: existingIngredient.name,
-                unit: existingIngredient.unit,
-                imageId: existingIngredient.imageId,
-            });
-        } else {
-            setNewIngredient({
-                ...newIngredient,
-                name: name,
-                imageId: 'tomato' // Default for brand new items
-            });
-        }
-    };
 
     return (
         <div className="flex flex-col h-full">
@@ -159,19 +136,19 @@ export default function IngredientsPage() {
                             <DialogHeader>
                                 <DialogTitle>افزودن ماده اولیه جدید</DialogTitle>
                                 <DialogDescription>
-                                    اطلاعات ماده اولیه جدید را وارد کنید. می‌توانید از مواد اولیه موجود انتخاب کنید.
+                                    اطلاعات ماده اولیه جدید را وارد کنید.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="name" className="text-right">نام</Label>
-                                    <Combobox
-                                        items={uniqueIngredientNames}
-                                        value={newIngredient.name}
-                                        onChange={handleNameSelect}
-                                        placeholder="انتخاب یا ورود نام..."
-                                        className="col-span-3"
-                                    />
+                                  <Label htmlFor="name" className="text-right">نام</Label>
+                                  <Input
+                                    id="name"
+                                    value={newIngredient.name}
+                                    onChange={(e) => setNewIngredient({ ...newIngredient, name: e.target.value })}
+                                    className="col-span-3"
+                                    placeholder="مثال: سینه مرغ"
+                                  />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="variantName" className="text-right">نوع بسته</Label>
