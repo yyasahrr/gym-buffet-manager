@@ -3,16 +3,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PlusCircle } from 'lucide-react';
 import {
-  add,
-  eachDayOfInterval,
+  isWithinInterval,
+  endOfDay,
+  startOfDay,
   endOfMonth,
   endOfWeek,
-  format,
-  isSameDay,
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
-import { format as formatJalali, parse } from 'date-fns-jalali';
+import { format as formatJalali } from 'date-fns-jalali';
 
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
@@ -44,26 +43,75 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { type Expense } from '@/lib/types';
-import { expenses as initialExpenses } from '@/lib/data';
+import { type Expense, type Purchase } from '@/lib/types';
+import { expenses as initialExpenses, purchases as initialPurchases } from '@/lib/data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 
-const EXPENSES_STORAGE_KEY = 'gym-canteen-expenses';
+const MANUAL_EXPENSES_STORAGE_KEY = 'gym-canteen-expenses';
+const PURCHASES_STORAGE_KEY = 'gym-canteen-purchases';
+
+type CombinedExpense = {
+    id: string;
+    description: string;
+    amount: number;
+    date: string;
+    type: 'manual' | 'purchase' | 'transport';
+}
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [manualExpenses, setManualExpenses] = useState<Expense[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({
     description: '',
     amount: '',
-    date: new Date().toISOString(),
+    date: new Date().toISOString().split('T')[0],
   });
   const { toast } = useToast();
-
+  
   useEffect(() => {
-    const storedExpenses = localStorage.getItem(EXPENSES_STORAGE_KEY);
-    setExpenses(storedExpenses ? JSON.parse(storedExpenses) : initialExpenses);
+    const storedManualExpenses = localStorage.getItem(MANUAL_EXPENSES_STORAGE_KEY);
+    setManualExpenses(storedManualExpenses ? JSON.parse(storedManualExpenses) : initialExpenses);
+
+    const storedPurchases = localStorage.getItem(PURCHASES_STORAGE_KEY);
+    setPurchases(storedPurchases ? JSON.parse(storedPurchases) : initialPurchases);
   }, []);
+
+  const combinedExpenses = useMemo(() => {
+    const allExpenses: CombinedExpense[] = [];
+
+    // Add manual expenses
+    manualExpenses.forEach(exp => {
+        allExpenses.push({ ...exp, type: 'manual' });
+    });
+
+    // Add automatic expenses from purchases
+    purchases.forEach(pur => {
+        const purchaseTotal = (pur.items || []).reduce((sum, item) => sum + (item.lineTotalCost || 0), 0);
+        if (purchaseTotal > 0) {
+            allExpenses.push({
+                id: `pur-cost-${pur.id}`,
+                description: `خرید اقلام فاکتور #${pur.id.substring(4)}`,
+                amount: purchaseTotal,
+                date: pur.date,
+                type: 'purchase',
+            });
+        }
+        if (pur.transportCost > 0) {
+            allExpenses.push({
+                id: `pur-transport-${pur.id}`,
+                description: `هزینه حمل فاکتور #${pur.id.substring(4)}`,
+                amount: pur.transportCost,
+                date: pur.date,
+                type: 'transport',
+            });
+        }
+    });
+
+    return allExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [manualExpenses, purchases]);
+
 
   const handleAddExpense = () => {
     if (!newExpense.description || !newExpense.amount) {
@@ -79,12 +127,12 @@ export default function ExpensesPage() {
       id: `exp-${Date.now()}`,
       description: newExpense.description,
       amount: parseInt(newExpense.amount, 10),
-      date: newExpense.date,
+      date: new Date(newExpense.date).toISOString(),
     };
 
-    const updatedExpenses = [...expenses, expenseData];
-    setExpenses(updatedExpenses);
-    localStorage.setItem(EXPENSES_STORAGE_KEY, JSON.stringify(updatedExpenses));
+    const updatedExpenses = [...manualExpenses, expenseData];
+    setManualExpenses(updatedExpenses);
+    localStorage.setItem(MANUAL_EXPENSES_STORAGE_KEY, JSON.stringify(updatedExpenses));
 
     toast({
       title: 'موفقیت‌آمیز',
@@ -92,70 +140,102 @@ export default function ExpensesPage() {
     });
 
     setIsDialogOpen(false);
-    setNewExpense({ description: '', amount: '', date: new Date().toISOString() });
+    setNewExpense({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
   };
   
-  const groupedExpenses = useMemo(() => {
-    const today = new Date();
-    const startOfThisWeek = startOfWeek(today, { weekStartsOn: 6 }); // Saturday
-    const endOfThisWeek = endOfWeek(today, { weekStartsOn: 6 });
-    const startOfThisMonth = startOfMonth(today);
-    const endOfThisMonth = endOfMonth(today);
+  const getExpensesForPeriod = (period: 'daily' | 'weekly' | 'monthly') => {
+      const today = new Date();
+      let interval: Interval;
 
-    const daily = expenses.filter(exp => isSameDay(new Date(exp.date), today));
-    const weekly = expenses.filter(exp => {
-        const expDate = new Date(exp.date);
-        return expDate >= startOfThisWeek && expDate <= endOfThisWeek;
-    });
-    const monthly = expenses.filter(exp => {
-        const expDate = new Date(exp.date);
-        return expDate >= startOfThisMonth && expDate <= endOfThisMonth;
-    });
+      switch(period) {
+          case 'daily':
+              interval = { start: startOfDay(today), end: endOfDay(today) };
+              break;
+          case 'weekly':
+              interval = { start: startOfWeek(today, { weekStartsOn: 6 }), end: endOfWeek(today, { weekStartsOn: 6 }) };
+              break;
+          case 'monthly':
+              interval = { start: startOfMonth(today), end: endOfMonth(today) };
+              break;
+      }
 
-    return { daily, weekly, monthly };
-  }, [expenses]);
+      return combinedExpenses.filter(exp => isWithinInterval(new Date(exp.date), interval));
+  }
   
-  const renderExpenseTable = (expenseList: Expense[], title: string) => {
-    const total = expenseList.reduce((sum, exp) => sum + exp.amount, 0);
+  const renderExpenseTabContent = (period: 'daily' | 'weekly' | 'monthly', title: string) => {
+    const expenseList = getExpensesForPeriod(period);
+
+    const totals = expenseList.reduce((acc, exp) => {
+        if (exp.type === 'purchase') acc.purchase += exp.amount;
+        else if (exp.type === 'transport') acc.transport += exp.amount;
+        else if (exp.type === 'manual') acc.manual += exp.amount;
+        acc.total += exp.amount;
+        return acc;
+    }, { purchase: 0, transport: 0, manual: 0, total: 0 });
     
     return (
-        <Card>
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>مجموع: {total.toLocaleString('fa-IR')} تومان</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>توضیحات</TableHead>
-                  <TableHead>مبلغ</TableHead>
-                  <TableHead>تاریخ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenseList.length > 0 ? (
-                  expenseList.map(exp => (
-                    <TableRow key={exp.id}>
-                      <TableCell>{exp.description}</TableCell>
-                      <TableCell>{exp.amount.toLocaleString('fa-IR')} تومان</TableCell>
-                      <TableCell>{formatJalali(new Date(exp.date), 'yyyy/MM/dd')}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      هزینه‌ای ثبت نشده است.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div className="grid gap-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle>{title}</CardTitle>
+                     <CardDescription>خلاصه خروج وجه نقد در این دوره</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">جمع خریدها</span>
+                        <span className="font-semibold">{totals.purchase.toLocaleString('fa-IR')} تومان</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">هزینه حمل</span>
+                        <span className="font-semibold">{totals.transport.toLocaleString('fa-IR')} تومان</span>
+                    </div>
+                     <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">هزینه‌های دستی</span>
+                        <span className="font-semibold">{totals.manual.toLocaleString('fa-IR')} تومان</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between items-center text-lg font-bold">
+                        <span>جمع کل هزینه‌ها</span>
+                        <span className="text-primary">{totals.total.toLocaleString('fa-IR')} تومان</span>
+                    </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>لیست تراکنش‌ها</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>توضیحات</TableHead>
+                        <TableHead>مبلغ</TableHead>
+                        <TableHead>تاریخ</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {expenseList.length > 0 ? (
+                        expenseList.map(exp => (
+                            <TableRow key={exp.id}>
+                            <TableCell>{exp.description}</TableCell>
+                            <TableCell>{exp.amount.toLocaleString('fa-IR')} تومان</TableCell>
+                            <TableCell>{formatJalali(new Date(exp.date), 'yyyy/MM/dd')}</TableCell>
+                            </TableRow>
+                        ))
+                        ) : (
+                        <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground">
+                            هزینه‌ای در این دوره ثبت نشده است.
+                            </TableCell>
+                        </TableRow>
+                        )}
+                    </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
       );
   }
-
 
   return (
     <div className="flex flex-col h-full">
@@ -165,12 +245,13 @@ export default function ExpensesPage() {
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
-                <PlusCircle className="ml-2 h-4 w-4" /> ثبت هزینه جدید
+                <PlusCircle className="ml-2 h-4 w-4" /> ثبت هزینه دستی
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>ثبت هزینه جدید</DialogTitle>
+                <DialogTitle>ثبت هزینه دستی جدید</DialogTitle>
+                <DialogDescription>هزینه‌های متفرقه مانند اجاره، حقوق و ... را وارد کنید.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -204,8 +285,8 @@ export default function ExpensesPage() {
                   <Input
                     id="date"
                     type="date"
-                    value={format(new Date(newExpense.date), 'yyyy-MM-dd')}
-                    onChange={(e) => setNewExpense({ ...newExpense, date: new Date(e.target.value).toISOString() })}
+                    value={newExpense.date}
+                    onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
                     className="col-span-3"
                   />
                 </div>
@@ -229,13 +310,13 @@ export default function ExpensesPage() {
                 <TabsTrigger value="monthly">ماهانه</TabsTrigger>
             </TabsList>
             <TabsContent value="daily">
-                {renderExpenseTable(groupedExpenses.daily, 'هزینه‌های امروز')}
+                {renderExpenseTabContent('daily', 'هزینه‌های امروز')}
             </TabsContent>
             <TabsContent value="weekly">
-                {renderExpenseTable(groupedExpenses.weekly, 'هزینه‌های این هفته')}
+                {renderExpenseTabContent('weekly', 'هزینه‌های این هفته')}
             </TabsContent>
             <TabsContent value="monthly">
-                {renderExpenseTable(groupedExpenses.monthly, 'هزینه‌های این ماه')}
+                {renderExpenseTabContent('monthly', 'هزینه‌های این ماه')}
             </TabsContent>
         </Tabs>
         
