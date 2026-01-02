@@ -39,6 +39,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 
 const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 const INGREDIENTS_STORAGE_KEY = 'gym-canteen-ingredients';
@@ -57,7 +58,7 @@ export default function IngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newIngredient, setNewIngredient] = useState<{name: string; variantName: string; stock: string; avgBuyPrice: string; unit: Unit}>({ name: '', variantName: '', stock: '', avgBuyPrice: '', unit: 'g' });
+    const [newIngredient, setNewIngredient] = useState<{name: string; variantName: string; stock: string; avgBuyPrice: string; unit: Unit, imageId: string}>({ name: '', variantName: '', stock: '', avgBuyPrice: '', unit: 'g', imageId: 'tomato' });
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -72,6 +73,12 @@ export default function IngredientsPage() {
         }
     }, []);
 
+    const uniqueIngredientNames = useMemo(() => {
+        const names = new Set(ingredients.map(i => i.name));
+        return Array.from(names).map(name => ({ value: name, label: name }));
+    }, [ingredients]);
+
+
     const filteredIngredients = useMemo(() => {
         return ingredients.filter(ingredient =>
             ingredient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -80,7 +87,7 @@ export default function IngredientsPage() {
     }, [ingredients, searchQuery]);
 
     const handleAddIngredient = () => {
-        const { name, variantName, stock, avgBuyPrice, unit } = newIngredient;
+        const { name, variantName, stock, avgBuyPrice, unit, imageId } = newIngredient;
         if (!name || !stock || !avgBuyPrice || !unit) {
             toast({
                 variant: "destructive",
@@ -96,7 +103,7 @@ export default function IngredientsPage() {
             variantName: variantName || undefined,
             stock: parseInt(stock, 10),
             avgBuyPrice: parseInt(avgBuyPrice, 10),
-            imageId: 'tomato', // Default image
+            imageId: imageId,
             unit,
         };
 
@@ -106,11 +113,11 @@ export default function IngredientsPage() {
         
         toast({
             title: "موفقیت‌آمیز",
-            description: `ماده اولیه "${name}" با موفقیت اضافه شد.`,
+            description: `ماده اولیه "${name} ${variantName || ''}" با موفقیت اضافه شد.`,
         });
 
         setIsDialogOpen(false);
-        setNewIngredient({ name: '', variantName: '', stock: '', avgBuyPrice: '', unit: 'g' });
+        setNewIngredient({ name: '', variantName: '', stock: '', avgBuyPrice: '', unit: 'g', imageId: 'tomato' });
     };
 
     const totalPurchasePrice = useMemo(() => {
@@ -118,6 +125,24 @@ export default function IngredientsPage() {
         const pricePerUnit = parseFloat(newIngredient.avgBuyPrice) || 0;
         return quantity * pricePerUnit;
     }, [newIngredient.stock, newIngredient.avgBuyPrice]);
+    
+    const handleNameSelect = (name: string) => {
+        const existingIngredient = ingredients.find(i => i.name === name);
+        if (existingIngredient) {
+            setNewIngredient({
+                ...newIngredient,
+                name: existingIngredient.name,
+                unit: existingIngredient.unit,
+                imageId: existingIngredient.imageId,
+            });
+        } else {
+            setNewIngredient({
+                ...newIngredient,
+                name: name,
+                imageId: 'tomato' // Default for brand new items
+            });
+        }
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -134,13 +159,19 @@ export default function IngredientsPage() {
                             <DialogHeader>
                                 <DialogTitle>افزودن ماده اولیه جدید</DialogTitle>
                                 <DialogDescription>
-                                    اطلاعات ماده اولیه جدید را وارد کنید.
+                                    اطلاعات ماده اولیه جدید را وارد کنید. می‌توانید از مواد اولیه موجود انتخاب کنید.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="name" className="text-right">نام</Label>
-                                    <Input id="name" value={newIngredient.name} onChange={(e) => setNewIngredient({...newIngredient, name: e.target.value})} className="col-span-3"/>
+                                    <Combobox
+                                        items={uniqueIngredientNames}
+                                        value={newIngredient.name}
+                                        onChange={handleNameSelect}
+                                        placeholder="انتخاب یا ورود نام..."
+                                        className="col-span-3"
+                                    />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="variantName" className="text-right">نوع بسته</Label>
@@ -217,7 +248,7 @@ export default function IngredientsPage() {
                                     return (
                                         <TableRow key={ingredient.id}>
                                             <TableCell className="hidden sm:table-cell align-middle">
-                                                {image && (
+                                                {image ? (
                                                     <Image
                                                         alt={displayName}
                                                         className="aspect-square rounded-md object-cover"
@@ -226,6 +257,10 @@ export default function IngredientsPage() {
                                                         width="64"
                                                         data-ai-hint={image.imageHint}
                                                     />
+                                                ) : (
+                                                    <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">
+                                                        <span className="text-xs text-muted-foreground">No Image</span>
+                                                    </div>
                                                 )}
                                             </TableCell>
                                             <TableCell className="font-medium align-middle">{displayName}</TableCell>
