@@ -127,15 +127,6 @@ export default function OrderClient() {
         return;
     }
 
-    if (newBalance !== null && newBalance < -selectedCustomer.creditLimit) {
-      toast({
-          variant: "destructive",
-          title: "سقف اعتبار رد شده است",
-          description: `این سفارش سقف اعتبار ${selectedCustomer.name} به مبلغ ${selectedCustomer.creditLimit.toLocaleString('fa-IR')} تومان را رد می‌کند.`,
-      });
-      return;
-    }
-
     setIsCheckingOut(true);
     
     // Simulate API call
