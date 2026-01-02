@@ -36,15 +36,15 @@ export function Header({ breadcrumbs, activeBreadcrumb, onSearch }: HeaderProps)
       <div className="flex-1">
         <Breadcrumb className="hidden md:flex">
           <BreadcrumbList>
-            {breadcrumbs.map((item, index) => (
-              <>
-                <BreadcrumbItem key={index}>
+            {breadcrumbs.map((item) => (
+              <React.Fragment key={item.href}>
+                <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link href={item.href}>{item.label}</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
-              </>
+              </React.Fragment>
             ))}
             <BreadcrumbItem>
               <BreadcrumbPage>{activeBreadcrumb}</BreadcrumbPage>
