@@ -1,8 +1,6 @@
 'use client';
 
-import Image from 'next/image';
 import { PlusCircle, MoreHorizontal, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
-import placeholderImages from '@/lib/placeholder-images.json';
 import { Product, Order } from '@/lib/types';
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
@@ -57,8 +55,6 @@ type DialogState = {
     mode: 'add' | 'edit';
     product: Product | null;
 }
-
-const imageMap = new Map(placeholderImages.placeholderImages.map(p => [p.id, p]));
 
 export default function ProductsPage() {
   const { products, orders } = useAppData();
@@ -177,9 +173,6 @@ export default function ProductsPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead className="hidden w-[100px] sm:table-cell">
-                        <span className="sr-only">تصویر</span>
-                    </TableHead>
                     <TableHead>نام</TableHead>
                     <TableHead>موجودی</TableHead>
                     <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
@@ -191,21 +184,8 @@ export default function ProductsPage() {
                 </TableHeader>
                 <TableBody>
                     {productList.map(product => {
-                        const image = imageMap.get(product.imageId);
                         return (
                             <TableRow key={product.id}>
-                                <TableCell className="hidden sm:table-cell align-middle">
-                                    {image && (
-                                        <Image
-                                            alt={product.name}
-                                            className="aspect-square rounded-md object-cover"
-                                            height="64"
-                                            src={image.imageUrl}
-                                            width="64"
-                                            data-ai-hint={image.imageHint}
-                                        />
-                                    )}
-                                </TableCell>
                                 <TableCell className="font-medium align-middle">{product.name}</TableCell>
                                 <TableCell className="align-middle">
                                     <Badge variant={product.stock > 0 ? 'outline' : 'destructive'}>{product.stock}</Badge>

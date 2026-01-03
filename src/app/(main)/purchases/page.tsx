@@ -109,6 +109,9 @@ export default function PurchasesPage() {
       if(selectedItem) {
         updatedItems[index].type = selectedItem.type;
         updatedItems[index].itemName = selectedItem.name;
+      } else {
+        updatedItems[index].type = undefined;
+        updatedItems[index].itemName = '';
       }
     }
     setPurchaseItems(updatedItems);
@@ -139,7 +142,7 @@ export default function PurchasesPage() {
     }
     
     const validItems = purchaseItems.filter(
-      item => item.itemId && (item.quantity || 0) > 0 && (item.lineTotalCost || 0) > 0
+      item => item.itemId && item.type && (item.quantity || 0) > 0 && (item.lineTotalCost || 0) > 0
     ).map(item => ({
         ...item,
         id: `p-item-${Date.now()}-${Math.random()}`
@@ -162,7 +165,8 @@ export default function PurchasesPage() {
       const finalUnitCost = (itemBaseCost + transportShare) / item.quantity;
       
       if (item.type === 'ingredient') {
-        const originalIngredientIndex = tempIngredients.findIndex(i => i.id === item.itemId.split('-')[1]);
+        const itemId = item.itemId.split('-').slice(1).join('-');
+        const originalIngredientIndex = tempIngredients.findIndex(i => i.id === itemId);
         if (originalIngredientIndex !== -1) {
           const originalIngredient = tempIngredients[originalIngredientIndex];
           const oldStock = originalIngredient.stock;
@@ -177,7 +181,8 @@ export default function PurchasesPage() {
           originalIngredient.avgBuyPrice = newAvgPrice;
         }
       } else { // Product
-        const originalProductIndex = tempProducts.findIndex(p => p.id === item.itemId.split('-')[1]);
+        const itemId = item.itemId.split('-').slice(1).join('-');
+        const originalProductIndex = tempProducts.findIndex(p => p.id === itemId);
         if (originalProductIndex !== -1) {
            const originalProduct = tempProducts[originalProductIndex];
            const oldStock = originalProduct.stock;
