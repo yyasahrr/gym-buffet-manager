@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PlusCircle, Trash2, MoreHorizontal, Pencil, Archive, ArchiveRestore } from 'lucide-react';
 import { format } from 'date-fns';
-import { format as formatJalali } from 'date-fns-jalali';
+import { format as formatJalali, parse as parseJalali } from 'date-fns-jalali';
 
 import { Header } from '@/components/header';
 import { PageHeader } from '@/components/page-header';
@@ -446,7 +446,16 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">تاریخ فاکتور</Label>
-                    <Input id="date" type="date" value={format(new Date(purchaseDate), 'yyyy-MM-dd')} onChange={(e) => setPurchaseDate(new Date(e.target.value).toISOString())} disabled={dialogState.mode === 'edit'} />
+                    <Input id="date" type="text" placeholder="مثال: ۱۴۰۴/۱۰/۱۵" value={formatJalali(new Date(purchaseDate), 'yyyy/MM/dd')} onChange={(e) => {
+                        try {
+                            const parsed = parseJalali(e.target.value, 'yyyy/MM/dd', new Date());
+                            if (!isNaN(parsed.getTime())) {
+                                setPurchaseDate(parsed.toISOString());
+                            }
+                        } catch (error) {
+                            // Invalid date, ignore
+                        }
+                    }} disabled={dialogState.mode === 'edit'} />
                   </div>
                    <div className="space-y-2">
                     <Label htmlFor="note">یادداشت (اختیاری)</Label>

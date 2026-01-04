@@ -17,6 +17,7 @@ import {
   Settings,
   CircleUser,
   LifeBuoy,
+  CupSoda,
 } from 'lucide-react';
 
 import {
@@ -31,6 +32,7 @@ const mainLinks = [
   { href: '/products', label: 'محصولات', icon: Package },
   { href: '/ingredients', label: 'مواد اولیه', icon: Leaf },
   { href: '/purchases', label: 'خرید', icon: Truck },
+  { href: '/consumables', label: 'مصرفی‌ها', icon: CupSoda },
   { href: '/recipes', label: 'دستور پخت‌ها', icon: ChefHat },
   { href: '/waste', label: 'ضایعات', icon: Trash2 },
   { href: '/reports', label: 'گزارشات', icon: LineChart },
