@@ -97,32 +97,40 @@ export default function ProductsPage() {
       return;
     }
     
-    if (dialogState.mode === 'add') {
-        const newProductData: Product = {
-          id: `prod-${Date.now()}`,
-          name,
-          stock: 0, 
-          avgBuyPrice: 0,
-          sellPrice: parseInt(sellPrice, 10),
-          imageId: 'protein_powder', // default image
-          status: 'active',
-        };
+    try {
+      if (dialogState.mode === 'add') {
+          const newProductData: Product = {
+            id: `prod-${Date.now()}`,
+            name,
+            stock: 0, 
+            avgBuyPrice: 0,
+            sellPrice: parseInt(sellPrice, 10),
+            imageId: 'protein_powder', // default image
+            status: 'active',
+          };
 
-        const updatedProducts = [...products, newProductData];
-        dataStore.saveData({ products: updatedProducts });
-        
-        toast({
-          title: "موفقیت‌آمیز",
-          description: `محصول "${name}" با موفقیت اضافه شد.`,
-        });
-    } else if (dialogState.mode === 'edit' && dialogState.product) {
-        const updatedProducts = products.map(p => 
-            p.id === dialogState.product!.id ? { ...p, name, sellPrice: parseInt(sellPrice, 10) } : p
-        );
-        dataStore.saveData({ products: updatedProducts });
-        toast({ title: "موفقیت‌آمیز", description: `محصول "${name}" با موفقیت ویرایش شد.` });
+          const updatedProducts = [...products, newProductData];
+          dataStore.saveData({ products: updatedProducts });
+          
+          toast({
+            title: "موفقیت‌آمیز",
+            description: `محصول "${name}" با موفقیت اضافه شد.`,
+          });
+      } else if (dialogState.mode === 'edit' && dialogState.product) {
+          const updatedProducts = products.map(p => 
+              p.id === dialogState.product!.id ? { ...p, name, sellPrice: parseInt(sellPrice, 10) } : p
+          );
+          dataStore.saveData({ products: updatedProducts });
+          toast({ title: "موفقیت‌آمیز", description: `محصول "${name}" با موفقیت ویرایش شد.` });
+      }
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast({
+        variant: "destructive",
+        title: "خطا",
+        description: "خطایی در ذخیره محصول رخ داد.",
+      });
     }
-
 
     closeDialog();
   };
@@ -145,18 +153,27 @@ export default function ProductsPage() {
     const product = products.find(p => p.id === productId);
     if(!product) return;
 
-    const hasUsageHistory = orders.some((order: any) => order.items.some((item: any) => item.item.id === productId));
+    try {
+      const hasUsageHistory = orders.some((order: any) => order.items.some((item: any) => item.item.id === productId));
 
-    if(product.stock > 0 || hasUsageHistory) {
+      if(product.stock > 0 || hasUsageHistory) {
+        toast({
+          variant: "destructive",
+          title: "حذف امکان‌پذیر نیست",
+          description: "این محصول دارای موجودی یا سابقه فروش است. ابتدا آن را بایگانی کنید.",
+        });
+      } else {
+        const updatedProducts = products.filter(p => p.id !== productId);
+        dataStore.saveData({ products: updatedProducts });
+        toast({ title: "محصول برای همیشه حذف شد"});
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
       toast({
         variant: "destructive",
-        title: "حذف امکان‌پذیر نیست",
-        description: "این محصول دارای موجودی یا سابقه فروش است. ابتدا آن را بایگانی کنید.",
+        title: "خطا",
+        description: "خطایی در حذف محصول رخ داد.",
       });
-    } else {
-      const updatedProducts = products.filter(p => p.id !== productId);
-      dataStore.saveData({ products: updatedProducts });
-      toast({ title: "محصول برای همیشه حذف شد"});
     }
     setOpenMenuId(null);
   }

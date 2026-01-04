@@ -271,10 +271,38 @@ export default function PurchasesPage() {
           });
         return;
       }
+
+      // Reverse the inventory impact before deleting
+      let tempIngredients = ingredients.map(i => ({...i}));
+      let tempProducts = products.map(p => ({...p}));
+
+      for (const item of purchaseToDelete.items) {
+        if (item.type === 'ingredient') {
+          const itemId = item.itemId.split('-').slice(1).join('-');
+          const originalIngredientIndex = tempIngredients.findIndex(i => i.id === itemId);
+          if (originalIngredientIndex !== -1) {
+            const originalIngredient = tempIngredients[originalIngredientIndex];
+            const oldStock = originalIngredient.stock;
+            const newStock = Math.max(0, oldStock - item.quantity); // Prevent negative stock
+            originalIngredient.stock = newStock;
+            // Note: avgBuyPrice is not recalculated for simplicity, as it would require full ledger
+          }
+        } else { // Product
+          const itemId = item.itemId.split('-').slice(1).join('-');
+          const originalProductIndex = tempProducts.findIndex(p => p.id === itemId);
+          if (originalProductIndex !== -1) {
+            const originalProduct = tempProducts[originalProductIndex];
+            const oldStock = originalProduct.stock;
+            const newStock = Math.max(0, oldStock - item.quantity);
+            originalProduct.stock = newStock;
+          }
+        }
+      }
+
       // In a real app, you'd check for dependencies before hard deleting.
       const updatedPurchases = purchases.filter(p => p.id !== purchaseId);
-      dataStore.saveData({ purchases: updatedPurchases });
-      toast({ title: 'فاکتور برای همیشه حذف شد' });
+      dataStore.saveData({ ingredients: tempIngredients, products: tempProducts, purchases: updatedPurchases });
+      toast({ title: 'فاکتور برای همیشه حذف شد و موجودی انبار بروزرسانی شد' });
       setOpenMenuId(null);
   };
 

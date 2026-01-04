@@ -205,7 +205,7 @@ export default function IngredientsPage() {
                                         <Badge variant={stockToDisplay > 0 ? 'outline' : 'destructive'}>{stockToDisplay.toLocaleString('fa-IR')} {unitLabel}</Badge>
                                     </TableCell>
                                     <TableCell className="align-middle">
-                                        {ingredient.avgBuyPrice > 0 ? `${Math.round(ingredient.avgBuyPrice).toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}
+                                        {ingredient.avgBuyPrice > 0 ? `${ingredient.avgBuyPrice.toLocaleString('fa-IR')} تومان / ${unitLabel}` : '-'}
                                     </TableCell>
                                     <TableCell className="text-left">
                                         <DropdownMenu open={openMenuId === ingredient.id} onOpenChange={(isOpen) => setOpenMenuId(isOpen ? ingredient.id : null)}>
