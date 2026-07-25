@@ -102,6 +102,13 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`${dest}?paid=1`);
     }
 
+    if (payment.kind === 'trainer_booking') {
+      // تراکنش رزرو مربی در سرور قطعی شد؛ کلاینت با bookingId آن را همگام می‌کند.
+      const dest = returnUrl ? `${origin}${returnUrl}` : `${origin}/trainer-marketplace`;
+      const sep = dest.includes('?') ? '&' : '?';
+      return NextResponse.redirect(`${dest}${sep}paid=1&booking=${encodeURIComponent(payment.bookingId || '')}&ref=${encodeURIComponent(refId || '')}`);
+    }
+
     if (invoice) {
       if (payment.installmentId) {
         const ins = invoice.installments.find((i) => i.id === payment.installmentId);
