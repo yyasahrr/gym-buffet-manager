@@ -10,6 +10,7 @@ import {
   endOfWeek,
   startOfMonth,
   startOfWeek,
+  type Interval,
 } from 'date-fns';
 import { format as formatJalali } from 'date-fns-jalali';
 
@@ -42,11 +43,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { type Expense, type Purchase } from '@/lib/types';
+import { type Expense, type Purchase, type ExpenseScope } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useAppData, dataStore } from '@/lib/store';
+import { useActiveRole, viewableBooks } from '@/lib/rbac';
 
 type CombinedExpense = {
     id: string;
@@ -54,15 +58,23 @@ type CombinedExpense = {
     amount: number;
     date: string;
     type: 'manual' | 'purchase' | 'transport';
+    scope?: ExpenseScope;
 }
+
+const scopeLabel: Record<string, string> = { buffet: 'بوفه', gym: 'باشگاه', shared: 'مشترک' };
 
 export default function ExpensesPage() {
   const { manualExpenses, purchases } = useAppData();
+  const [role] = useActiveRole();
+  // محدودهٔ دفترهای مجاز بر اساس نقش (دو دفتر هرگز ترکیب نمی‌شوند)
+  const books = viewableBooks(role);
+  const defaultScope = books.includes('buffet') ? 'buffet' : 'gym';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({
     description: '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
+    scope: defaultScope as 'buffet' | 'gym' | 'shared',
   });
   const { toast } = useToast();
 
@@ -71,10 +83,10 @@ export default function ExpensesPage() {
 
     // Add manual expenses
     manualExpenses.forEach(exp => {
-        allExpenses.push({ ...exp, type: 'manual' });
+        allExpenses.push({ ...exp, type: 'manual', scope: exp.scope || 'shared' });
     });
 
-    // Add automatic expenses from purchases
+    // Add automatic expenses from purchases (these belong to the buffet unit)
     purchases.forEach(pur => {
         const purchaseTotal = (pur.items || []).reduce((sum, item) => sum + (item.lineTotalCost || 0), 0);
         if (purchaseTotal > 0) {
@@ -84,6 +96,7 @@ export default function ExpensesPage() {
                 amount: purchaseTotal,
                 date: pur.date,
                 type: 'purchase',
+                scope: 'buffet',
             });
         }
         if (pur.transportCost > 0) {
@@ -93,12 +106,25 @@ export default function ExpensesPage() {
                 amount: pur.transportCost,
                 date: pur.date,
                 type: 'transport',
+                scope: 'buffet',
             });
         }
     });
 
     return allExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [manualExpenses, purchases]);
+
+  // فقط هزینه‌های متعلق به دفتر(های) مجازِ نقش (به‌علاوهٔ مشترک) نمایش داده شوند
+  const scopedExpenses = useMemo(
+    () => combinedExpenses.filter((e) => books.includes(e.scope as 'buffet' | 'gym') || (e.scope || 'shared') === 'shared'),
+    [combinedExpenses, books]
+  );
+
+  const [scopeFilter, setScopeFilter] = useState<string>('all');
+  const filteredCombined = useMemo(
+    () => (scopeFilter === 'all' ? scopedExpenses : scopedExpenses.filter((e) => (e.scope || 'shared') === scopeFilter)),
+    [scopedExpenses, scopeFilter]
+  );
 
 
   const handleAddExpense = () => {
@@ -116,6 +142,7 @@ export default function ExpensesPage() {
       description: newExpense.description,
       amount: parseInt(newExpense.amount, 10),
       date: new Date(newExpense.date).toISOString(),
+      scope: newExpense.scope,
     };
 
     const updatedExpenses = [...manualExpenses, expenseData];
@@ -127,7 +154,7 @@ export default function ExpensesPage() {
     });
 
     setIsDialogOpen(false);
-    setNewExpense({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
+    setNewExpense({ description: '', amount: '', date: new Date().toISOString().split('T')[0], scope: defaultScope });
   };
   
   const getExpensesForPeriod = (period: 'daily' | 'weekly' | 'monthly') => {
@@ -146,7 +173,7 @@ export default function ExpensesPage() {
               break;
       }
 
-      return combinedExpenses.filter(exp => isWithinInterval(new Date(exp.date), interval));
+      return filteredCombined.filter(exp => isWithinInterval(new Date(exp.date), interval));
   }
   
   const renderExpenseTabContent = (period: 'daily' | 'weekly' | 'monthly', title: string) => {
@@ -159,13 +186,20 @@ export default function ExpensesPage() {
         acc.total += exp.amount;
         return acc;
     }, { purchase: 0, transport: 0, manual: 0, total: 0 });
+
+    // Separate totals by business unit so the two owners' books never mix.
+    const byScope = expenseList.reduce((acc, exp) => {
+        const s = exp.scope || 'shared';
+        acc[s] = (acc[s] || 0) + exp.amount;
+        return acc;
+    }, {} as Record<string, number>);
     
     return (
         <div className="grid gap-4">
             <Card>
                 <CardHeader>
                     <CardTitle>{title}</CardTitle>
-                     <CardDescription>خلاصه خروج وجه نقد در این دوره</CardDescription>
+                     <CardDescription>خلاصه خروج وجه نقد در این دوره (تفکیک‌شده بر اساس واحد)</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex justify-between items-center text-sm">
@@ -181,6 +215,11 @@ export default function ExpensesPage() {
                         <span className="font-semibold">{totals.manual.toLocaleString('fa-IR')} تومان</span>
                     </div>
                     <Separator />
+                    <div className="flex flex-wrap gap-2 text-xs">
+                        <Badge variant="secondary">بوفه: {(byScope.buffet || 0).toLocaleString('fa-IR')}</Badge>
+                        <Badge variant="outline">باشگاه: {(byScope.gym || 0).toLocaleString('fa-IR')}</Badge>
+                        <Badge variant="destructive">مشترک: {(byScope.shared || 0).toLocaleString('fa-IR')}</Badge>
+                    </div>
                     <div className="flex justify-between items-center text-lg font-bold">
                         <span>جمع کل هزینه‌ها</span>
                         <span className="text-primary">{totals.total.toLocaleString('fa-IR')} تومان</span>
@@ -196,6 +235,7 @@ export default function ExpensesPage() {
                     <TableHeader>
                         <TableRow>
                         <TableHead>توضیحات</TableHead>
+                        <TableHead>واحد</TableHead>
                         <TableHead>مبلغ</TableHead>
                         <TableHead>تاریخ</TableHead>
                         </TableRow>
@@ -205,13 +245,14 @@ export default function ExpensesPage() {
                         expenseList.map(exp => (
                             <TableRow key={exp.id}>
                             <TableCell>{exp.description}</TableCell>
+                            <TableCell><Badge variant={exp.scope === 'gym' ? 'default' : exp.scope === 'buffet' ? 'secondary' : 'outline'}>{scopeLabel[exp.scope || 'shared']}</Badge></TableCell>
                             <TableCell>{exp.amount.toLocaleString('fa-IR')} تومان</TableCell>
                             <TableCell>{formatJalali(new Date(exp.date), 'yyyy/MM/dd')}</TableCell>
                             </TableRow>
                         ))
                         ) : (
                         <TableRow>
-                            <TableCell colSpan={3} className="text-center text-muted-foreground">
+                            <TableCell colSpan={4} className="text-center text-muted-foreground">
                             هزینه‌ای در این دوره ثبت نشده است.
                             </TableCell>
                         </TableRow>
@@ -229,6 +270,17 @@ export default function ExpensesPage() {
       <Header breadcrumbs={[]} activeBreadcrumb="هزینه‌ها" />
       <main className="flex-1 p-4 sm:px-6 sm:py-6">
         <PageHeader title="مدیریت هزینه‌ها">
+          <Select value={scopeFilter} onValueChange={setScopeFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="واحد" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه واحدهای مجاز</SelectItem>
+              {books.includes('buffet') && <SelectItem value="buffet">بوفه</SelectItem>}
+              {books.includes('gym') && <SelectItem value="gym">باشگاه</SelectItem>}
+              <SelectItem value="shared">مشترک</SelectItem>
+            </SelectContent>
+          </Select>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -252,6 +304,19 @@ export default function ExpensesPage() {
                     className="col-span-3"
                     placeholder="مثال: اجاره مغازه"
                   />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="scope" className="text-right">
+                    واحد مالی
+                  </Label>
+                  <Select value={newExpense.scope} onValueChange={(v) => setNewExpense({ ...newExpense, scope: v as 'buffet' | 'gym' | 'shared' })}>
+                    <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {books.includes('buffet') && <SelectItem value="buffet">بوفه (صاحب بوفه)</SelectItem>}
+                      {books.includes('gym') && <SelectItem value="gym">باشگاه (صاحب باشگاه)</SelectItem>}
+                      <SelectItem value="shared">مشترک</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="amount" className="text-right">

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { format as formatJalali } from 'date-fns-jalali';
-import { PlusCircle, MinusCircle } from 'lucide-react';
+import { PlusCircle, MinusCircle, Pencil } from 'lucide-react';
 import { useAppData, dataStore } from '@/lib/store';
 import { Customer, CustomerTransaction } from '@/lib/types';
 import { Header } from '@/components/header';
@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { computeInvoiceStatus, invoicePaid, invoiceRemaining, periodLabels, daysUntil } from '@/lib/membership';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type DialogState = {
@@ -25,13 +26,19 @@ type DialogState = {
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
-  const { customers, customerTransactions } = useAppData();
+  const { customers, customerTransactions, membershipPlans, memberships, membershipInvoices } = useAppData();
   const { toast } = useToast();
 
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, type: 'credit' });
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionDescription, setTransactionDescription] = useState('');
   const [isClient, setIsClient] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editNationalId, setEditNationalId] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
 
   useEffect(() => {
     setIsClient(true);
@@ -50,6 +57,16 @@ export default function CustomerDetailPage() {
       return t.type === 'credit' ? acc + t.amount : acc - t.amount;
     }, 0);
   }, [transactions]);
+
+  const planMap = useMemo(() => new Map((membershipPlans || []).map((p) => [p.id, p])), [membershipPlans]);
+  const customerMemberships = useMemo(
+    () => (memberships || []).filter((m) => m.customerId === id),
+    [memberships, id]
+  );
+  const customerInvoices = useMemo(
+    () => (membershipInvoices || []).filter((i) => i.customerId === id),
+    [membershipInvoices, id]
+  );
 
   if (!isClient) {
      return (
@@ -127,7 +144,38 @@ export default function CustomerDetailPage() {
 
     setDialogState({ isOpen: false, type: 'credit' });
   };
-  
+
+  const openEdit = () => {
+    setEditName(customer.name);
+    setEditLastName(customer.lastName || '');
+    setEditNationalId(customer.nationalId || '');
+    setEditEmail(customer.email || '');
+    setEditPhone(customer.phone || '');
+    setEditOpen(true);
+  };
+
+  const saveEdit = () => {
+    if (!editName) {
+      toast({ variant: 'destructive', title: 'خطا', description: 'لطفاً نام مشتری را وارد کنید.' });
+      return;
+    }
+    const updatedCustomers = customers.map((c) =>
+      c.id === customer.id
+        ? {
+            ...c,
+            name: editName,
+            lastName: editLastName || undefined,
+            nationalId: editNationalId || undefined,
+            email: editEmail || undefined,
+            phone: editPhone || undefined,
+          }
+        : c
+    );
+    dataStore.saveData({ customers: updatedCustomers });
+    toast({ title: 'ذخیره شد', description: 'اطلاعات مشتری بروزرسانی شد.' });
+    setEditOpen(false);
+  };
+
   const newBalancePreview = (balance || 0) + (dialogState.type === 'credit' ? (parseInt(transactionAmount) || 0) : -(parseInt(transactionAmount) || 0));
 
   return (
@@ -146,8 +194,9 @@ export default function CustomerDetailPage() {
         </PageHeader>
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="md:col-span-1">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
               <CardTitle>اطلاعات مشتری</CardTitle>
+              <Button size="sm" variant="outline" onClick={openEdit}><Pencil className="ml-2 h-4 w-4" /> ویرایش</Button>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="flex justify-between">
@@ -159,6 +208,14 @@ export default function CustomerDetailPage() {
                 <span className={cn('font-semibold', customer.status === 'active' ? 'text-green-600' : 'text-gray-500')}>
                   {customer.status === 'active' ? 'فعال' : 'بایگانی شده'}
                 </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">ایمیل</span>
+                <span dir="ltr" className="max-w-[60%] truncate text-left">{customer.email || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">موبایل</span>
+                <span dir="ltr">{customer.phone || '—'}</span>
               </div>
               <div className="flex justify-between items-baseline pt-2">
                 <span className="text-muted-foreground">موجودی فعلی</span>
@@ -209,6 +266,85 @@ export default function CustomerDetailPage() {
           </Card>
         </div>
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>عضویت‌های این مشتری</CardTitle>
+              <CardDescription>پلن‌های عضویت (جدا از حساب بوفه).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {customerMemberships.length === 0 ? (
+                <p className="text-sm text-muted-foreground">عضویتی ثبت نشده است.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>پلن</TableHead>
+                      <TableHead>شروع</TableHead>
+                      <TableHead>پایان</TableHead>
+                      <TableHead>وضعیت</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customerMemberships.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium">{planMap.get(m.planId)?.name || 'نامشخص'}</TableCell>
+                        <TableCell>{formatJalali(new Date(m.startDate), 'yyyy/MM/dd')}</TableCell>
+                        <TableCell>{formatJalali(new Date(m.endDate), 'yyyy/MM/dd')}</TableCell>
+                        <TableCell>
+                          <span className={cn(m.status === 'active' ? 'text-green-600' : m.status === 'paused' ? 'text-amber-600' : 'text-destructive')}>
+                            {m.status === 'active' ? 'فعال' : m.status === 'paused' ? 'تعلیق' : 'لغو'}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>فاکتورهای شهریه</CardTitle>
+              <CardDescription>صورت‌حساب‌های شهریه (جدا از حساب بوفه).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {customerInvoices.length === 0 ? (
+                <p className="text-sm text-muted-foreground">فاکتوری صادر نشده است.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>عنوان</TableHead>
+                      <TableHead>مبلغ کل</TableHead>
+                      <TableHead>باقی‌مانده</TableHead>
+                      <TableHead>وضعیت</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customerInvoices.map((inv) => {
+                      const st = computeInvoiceStatus(inv);
+                      return (
+                        <TableRow key={inv.id}>
+                          <TableCell className="font-medium">{inv.title}</TableCell>
+                          <TableCell>{(inv.total || 0).toLocaleString('fa-IR')} تومان</TableCell>
+                          <TableCell className={cn(invoiceRemaining(inv) > 0 ? 'text-destructive' : '')}>{(invoiceRemaining(inv) || 0).toLocaleString('fa-IR')} تومان</TableCell>
+                          <TableCell>
+                            <span className={cn(st === 'paid' ? 'text-green-600' : st === 'overdue' ? 'text-destructive' : st === 'partial' ? 'text-amber-600' : 'text-muted-foreground')}>
+                              {st === 'paid' ? 'پرداخت‌شده' : st === 'overdue' ? 'سررسید گذشته' : st === 'partial' ? 'پرداخت جزئی' : 'پرداخت نشده'}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Transaction Dialog */}
         <Dialog open={dialogState.isOpen} onOpenChange={(isOpen) => !isOpen && setDialogState({ isOpen: false, type: 'credit' })}>
           <DialogContent className="sm:max-w-[425px]">
@@ -249,6 +385,42 @@ export default function CustomerDetailPage() {
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={() => setDialogState({ isOpen: false, type: 'credit' })}>لغو</Button>
               <Button type="submit" onClick={handleAddTransaction}>ثبت تراکنش</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit contact info dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>ویرایش اطلاعات تماس مشتری</DialogTitle>
+              <DialogDescription>ایمیل و شماره موبایل برای ارسال لینک پرداخت پورتال استفاده می‌شوند.</DialogDescription>
+            </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="cname" className="text-right">نام</Label>
+                  <Input id="cname" value={editName} onChange={(e) => setEditName(e.target.value)} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="clast" className="text-right">نام خانوادگی</Label>
+                  <Input id="clast" value={editLastName} onChange={(e) => setEditLastName(e.target.value)} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="cnat" className="text-right">کد ملی</Label>
+                  <Input id="cnat" dir="ltr" value={editNationalId} onChange={(e) => setEditNationalId(e.target.value.replace(/\D/g, '').slice(0, 10))} className="col-span-3" placeholder="۱۰ رقم" inputMode="numeric" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="cemail" className="text-right">ایمیل</Label>
+                  <Input id="cemail" dir="ltr" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="col-span-3" placeholder="example@domain.com" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="cphone" className="text-right">موبایل</Label>
+                  <Input id="cphone" dir="ltr" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="col-span-3" placeholder="09..." />
+                </div>
+              </div>
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>لغو</Button>
+              <Button type="submit" onClick={saveEdit}>ذخیره</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

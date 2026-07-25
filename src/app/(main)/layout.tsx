@@ -9,6 +9,11 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { MainNav } from '@/components/main-nav';
+import { AuthGate } from '@/components/auth-gate';
+import { PageAccessGate } from '@/components/page-access-gate';
+import { ManagementSession } from '@/components/management-session';
+import { RoleSwitcher } from '@/components/role-switcher';
+import { GlobalSearch } from '@/components/global-search';
 
 export default function MainLayout({
   children,
@@ -29,10 +34,16 @@ export default function MainLayout({
             <MainNav />
           </SidebarContent>
           <SidebarFooter>
-            {/* Footer content can go here */}
+            <RoleSwitcher />
+            <ManagementSession />
           </SidebarFooter>
         </Sidebar>
-        <div className="flex-1">{children}</div>
+        <div className="flex-1">
+          <GlobalSearch />
+          <AuthGate>
+            <PageAccessGate>{children}</PageAccessGate>
+          </AuthGate>
+        </div>
       </div>
     </SidebarProvider>
   );

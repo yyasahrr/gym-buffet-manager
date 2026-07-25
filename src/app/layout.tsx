@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from "@/components/ui/toaster";
 import PWA from "@/components/pwa";
+import { NotificationProvider } from "@/components/notification-provider";
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <PWA />
+        <NotificationProvider />
         {children}
         <Toaster />
       </body>

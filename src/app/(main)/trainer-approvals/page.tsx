@@ -1,0 +1,7 @@
+'use client';
+import { useAppData, dataStore } from '@/lib/store';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Check, X, UserCheck } from 'lucide-react';
+export default function TrainerApprovals(){const d=useAppData();const list=d.trainerProfiles||[];const set=(id:string,status:'approved'|'rejected')=>dataStore.saveData({trainerProfiles:list.map(x=>x.id===id?{...x,status}:x)});return <div dir="rtl" className="container mx-auto space-y-6 p-6"><h1 className="text-2xl font-bold"><UserCheck className="ml-2 inline"/>تأیید پروفایل مربیان</h1><Card><CardHeader><CardTitle>درخواست‌های نمایش عمومی</CardTitle></CardHeader><CardContent className="space-y-2">{list.map(x=><div key={x.id} className="flex items-center justify-between rounded border p-3"><div><b>{x.name}</b><p className="text-sm text-muted-foreground">{(x.specialties||[]).join('، ')} — {x.pricePerSession.toLocaleString()} تومان</p></div><div className="flex gap-2"><Badge>{x.status}</Badge>{x.status==='pending'&&<><Button size="sm" variant="outline" onClick={()=>set(x.id,'rejected')}><X className="ml-1 h-4 w-4"/>رد</Button><Button size="sm" onClick={()=>set(x.id,'approved')}><Check className="ml-1 h-4 w-4"/>تأیید</Button></>}</div></div>)}{!list.length&&<p className="text-muted-foreground">پروفایلی برای بررسی نیست.</p>}</CardContent></Card></div>}

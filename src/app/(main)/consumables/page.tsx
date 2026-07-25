@@ -268,21 +268,21 @@ export default function ConsumablesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <optgroup label="مواد اولیه">
-                          {activeIngredients.map(ing => (
-                            <SelectItem key={`ingredient-${ing.id}`} value={`ingredient-${ing.id}`}>
-                              {ing.name} (موجودی: {ing.stock} {unitLabels[ing.unit] || ''})
-                            </SelectItem>
-                          ))}
-                        </optgroup>
-                        <optgroup label="محصولات">
-                          {activeProducts.map(prod => (
-                            <SelectItem key={`product-${prod.id}`} value={`product-${prod.id}`}>
-                              {prod.name} (موجودی: {prod.stock})
-                            </SelectItem>
-                          ))}
-                        </optgroup>
-                      </SelectContent>
+                        <Label className='px-4 py-2 text-sm font-semibold'>مواد اولیه</Label>
+                        {activeIngredients.map(ing => (
+                          <SelectItem key={`ingredient-${ing.id}`} value={`ingredient-${ing.id}`}>
+                            {ing.name} (موجودی: {ing.stock} {unitLabels[ing.unit] || ''})
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                      <SelectGroup>
+                        <Label className='px-4 py-2 text-sm font-semibold'>محصولات</Label>
+                        {activeProducts.map(prod => (
+                          <SelectItem key={`product-${prod.id}`} value={`product-${prod.id}`}>
+                            {prod.name} (موجودی: {prod.stock})
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>

@@ -60,7 +60,7 @@ export default function ProductsPage() {
   const { products, orders } = useAppData();
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, mode: 'add', product: null });
-  const [formData, setFormData] = useState({ name: '', sellPrice: '' });
+  const [formData, setFormData] = useState({ name: '', sellPrice: '', category: 'سایر' });
   
   const { toast } = useToast();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -76,9 +76,9 @@ export default function ProductsPage() {
   const openDialog = (mode: 'add' | 'edit', product: Product | null = null) => {
     setDialogState({ isOpen: true, mode, product });
     if (mode === 'edit' && product) {
-        setFormData({ name: product.name, sellPrice: String(product.sellPrice) });
+        setFormData({ name: product.name, sellPrice: String(product.sellPrice), category: product.category || 'سایر' });
     } else {
-        setFormData({ name: '', sellPrice: '' });
+        setFormData({ name: '', sellPrice: '', category: 'سایر' });
     }
   };
 
@@ -107,6 +107,7 @@ export default function ProductsPage() {
             sellPrice: parseInt(sellPrice, 10),
             imageId: 'protein_powder', // default image
             status: 'active',
+            category: formData.category || 'سایر',
           };
 
           const updatedProducts = [...products, newProductData];
@@ -118,7 +119,7 @@ export default function ProductsPage() {
           });
       } else if (dialogState.mode === 'edit' && dialogState.product) {
           const updatedProducts = products.map(p => 
-              p.id === dialogState.product!.id ? { ...p, name, sellPrice: parseInt(sellPrice, 10) } : p
+              p.id === dialogState.product!.id ? { ...p, name, sellPrice: parseInt(sellPrice, 10), category: formData.category || 'سایر' } : p
           );
           dataStore.saveData({ products: updatedProducts });
           toast({ title: "موفقیت‌آمیز", description: `محصول "${name}" با موفقیت ویرایش شد.` });
@@ -191,6 +192,7 @@ export default function ProductsPage() {
                 <TableHeader>
                     <TableRow>
                     <TableHead>نام</TableHead>
+                    <TableHead>دسته</TableHead>
                     <TableHead>موجودی</TableHead>
                     <TableHead className="hidden md:table-cell">میانگین قیمت خرید</TableHead>
                     <TableHead>قیمت فروش</TableHead>
@@ -204,6 +206,9 @@ export default function ProductsPage() {
                         return (
                             <TableRow key={product.id}>
                                 <TableCell className="font-medium align-middle">{product.name}</TableCell>
+                                <TableCell className="align-middle">
+                                    <Badge variant="secondary">{product.category || 'سایر'}</Badge>
+                                </TableCell>
                                 <TableCell className="align-middle">
                                     <Badge variant={product.stock > 0 ? 'outline' : 'destructive'}>{product.stock}</Badge>
                                 </TableCell>
@@ -303,6 +308,10 @@ export default function ProductsPage() {
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="name" className="text-right">نام</Label>
                                 <Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="col-span-3"/>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="category" className="text-right">دسته‌بندی</Label>
+                                <Input id="category" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="col-span-3" placeholder="مثال: نوشیدنی، میان‌وعده"/>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="sellPrice" className="text-right">قیمت فروش</Label>
